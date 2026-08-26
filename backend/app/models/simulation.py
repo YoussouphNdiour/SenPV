@@ -22,7 +22,7 @@ class Simulation(Base):
         UUID(as_uuid=True), ForeignKey("panel_layouts.id", ondelete="CASCADE"), nullable=False
     )
     params: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    monthly_production: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    monthly_production: Mapped[list] = mapped_column(JSONB, nullable=False)
     annual_kwh: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     specific_yield: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     peak_power_kwc: Mapped[Decimal | None] = mapped_column(Numeric(8, 3), nullable=True)
