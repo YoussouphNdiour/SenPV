@@ -1,0 +1,183 @@
+{
+  "panels": [
+    {
+      "manufacturer": "JA Solar",
+      "model": "JAM72S30-545/MR",
+      "specs": {
+        "pmax_w": 545,
+        "voc_v": 49.62,
+        "vmp_v": 41.52,
+        "isc_a": 13.89,
+        "imp_a": 13.13,
+        "efficiency_pct": 21.1,
+        "temp_coeff_pmax_pct_per_c": -0.350,
+        "temp_coeff_voc_pct_per_c": -0.272,
+        "temp_coeff_isc_pct_per_c": 0.048,
+        "noct_c": 45,
+        "cells": 144,
+        "cell_type": "mono-PERC",
+        "dimensions_mm": {"length": 2278, "width": 1134, "height": 35},
+        "weight_kg": 28.6,
+        "warranty_years": 25
+      }
+    },
+    {
+      "manufacturer": "Canadian Solar",
+      "model": "CS6W-550MS",
+      "specs": {
+        "pmax_w": 550,
+        "voc_v": 49.80,
+        "vmp_v": 41.70,
+        "isc_a": 13.98,
+        "imp_a": 13.20,
+        "efficiency_pct": 21.3,
+        "temp_coeff_pmax_pct_per_c": -0.340,
+        "temp_coeff_voc_pct_per_c": -0.270,
+        "temp_coeff_isc_pct_per_c": 0.050,
+        "noct_c": 45,
+        "cells": 144,
+        "cell_type": "mono-PERC",
+        "dimensions_mm": {"length": 2266, "width": 1134, "height": 35},
+        "weight_kg": 28.2,
+        "warranty_years": 25
+      }
+    },
+    {
+      "manufacturer": "Jinko Solar",
+      "model": "JKM540M-72HL4-V",
+      "specs": {
+        "pmax_w": 540,
+        "voc_v": 49.46,
+        "vmp_v": 41.28,
+        "isc_a": 13.83,
+        "imp_a": 13.09,
+        "efficiency_pct": 20.9,
+        "temp_coeff_pmax_pct_per_c": -0.350,
+        "temp_coeff_voc_pct_per_c": -0.280,
+        "temp_coeff_isc_pct_per_c": 0.048,
+        "noct_c": 45,
+        "cells": 144,
+        "cell_type": "mono-PERC",
+        "dimensions_mm": {"length": 2274, "width": 1134, "height": 35},
+        "weight_kg": 28.9,
+        "warranty_years": 25
+      }
+    }
+  ],
+  "inverters": [
+    {
+      "manufacturer": "Huawei",
+      "model": "SUN2000-5KTL-M1",
+      "specs": {
+        "max_pv_power_kw": 7.5,
+        "max_pv_voltage_v": 600,
+        "startup_voltage_v": 120,
+        "mppt_voltage_range_v": "140-550",
+        "rated_pv_voltage_v": 360,
+        "max_input_current_a": 12.5,
+        "max_short_circuit_current_a": 18.75,
+        "num_mppt": 2,
+        "strings_per_mppt": 2,
+        "rated_ac_power_kw": 5.0,
+        "max_ac_apparent_kva": 5.5,
+        "rated_ac_current_a": 22.7,
+        "max_ac_current_a": 25.0,
+        "rated_output_voltage_v": 230,
+        "rated_output_freq_hz": 50,
+        "output_freq_range_hz": "45-55",
+        "power_factor_range": "0.8 leading - 0.8 lagging",
+        "thdi_pct": 3.0,
+        "dc_injection_ma": 10,
+        "max_efficiency_pct": 98.6,
+        "euro_efficiency_pct": 98.2,
+        "mppt_efficiency_pct": 99.9,
+        "protection": {
+          "anti_islanding": true,
+          "overvoltage": true,
+          "overcurrent": true,
+          "ground_fault": true
+        },
+        "dimensions_mm": {"width": 365, "height": 370, "depth": 160},
+        "weight_kg": 11.5,
+        "ip_rating": "IP65",
+        "warranty_years": 10
+      }
+    },
+    {
+      "manufacturer": "Growatt",
+      "model": "MIN 5000TL-X",
+      "specs": {
+        "max_pv_power_kw": 6.5,
+        "max_pv_voltage_v": 550,
+        "startup_voltage_v": 80,
+        "mppt_voltage_range_v": "80-500",
+        "rated_pv_voltage_v": 360,
+        "max_input_current_a": 12.5,
+        "max_short_circuit_current_a": 18.75,
+        "num_mppt": 2,
+        "strings_per_mppt": 1,
+        "rated_ac_power_kw": 5.0,
+        "max_ac_apparent_kva": 5.5,
+        "rated_ac_current_a": 22.7,
+        "max_ac_current_a": 25.0,
+        "rated_output_voltage_v": 230,
+        "rated_output_freq_hz": 50,
+        "output_freq_range_hz": "45-55",
+        "power_factor_range": "0.8 leading - 0.8 lagging",
+        "thdi_pct": 3.0,
+        "dc_injection_ma": 10,
+        "max_efficiency_pct": 97.6,
+        "euro_efficiency_pct": 97.0,
+        "mppt_efficiency_pct": 99.9,
+        "protection": {
+          "anti_islanding": true,
+          "overvoltage": true,
+          "overcurrent": true,
+          "ground_fault": true
+        },
+        "dimensions_mm": {"width": 361, "height": 522, "depth": 200},
+        "weight_kg": 16.5,
+        "ip_rating": "IP65",
+        "warranty_years": 10
+      }
+    },
+    {
+      "manufacturer": "Sungrow",
+      "model": "SG5.0RS",
+      "specs": {
+        "max_pv_power_kw": 6.75,
+        "max_pv_voltage_v": 600,
+        "startup_voltage_v": 80,
+        "mppt_voltage_range_v": "40-560",
+        "rated_pv_voltage_v": 360,
+        "max_input_current_a": 15.0,
+        "max_short_circuit_current_a": 20.0,
+        "num_mppt": 2,
+        "strings_per_mppt": 1,
+        "rated_ac_power_kw": 5.0,
+        "max_ac_apparent_kva": 5.0,
+        "rated_ac_current_a": 22.7,
+        "max_ac_current_a": 25.0,
+        "rated_output_voltage_v": 230,
+        "rated_output_freq_hz": 50,
+        "output_freq_range_hz": "45-55",
+        "power_factor_range": "0.8 leading - 0.8 lagging",
+        "thdi_pct": 3.0,
+        "dc_injection_ma": 10,
+        "max_efficiency_pct": 97.5,
+        "euro_efficiency_pct": 97.0,
+        "mppt_efficiency_pct": 99.9,
+        "protection": {
+          "anti_islanding": true,
+          "overvoltage": true,
+          "overcurrent": true,
+          "ground_fault": true
+        },
+        "dimensions_mm": {"width": 330, "height": 460, "depth": 185},
+        "weight_kg": 13.5,
+        "ip_rating": "IP65",
+        "warranty_years": 10
+      }
+    }
+  ]
+}

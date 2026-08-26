@@ -1,0 +1,10 @@
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.env
+.venv/
+dist/
+pgdata/
+redisdata/
+/data/uploads/

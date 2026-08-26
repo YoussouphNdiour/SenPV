@@ -1,0 +1,13 @@
+{
+  "currency": "FCFA",
+  "tariffs": [
+    {"tier": "DPP", "description": "Domestique Petite Puissance", "max_kwh": 150, "price_per_kwh": 90.47},
+    {"tier": "DMP", "description": "Domestique Moyenne Puissance", "max_kwh": 250, "price_per_kwh": 101.64},
+    {"tier": "DGP", "description": "Domestique Grande Puissance", "max_kwh": null, "price_per_kwh": 112.65},
+    {"tier": "PP", "description": "Professionnel", "max_kwh": null, "price_per_kwh": 118.00}
+  ],
+  "taxes": {
+    "tva_pct": 18.0,
+    "redevance_mensuelle_fcfa": 872
+  }
+}
