@@ -18,7 +18,6 @@ interface SimulationTabProps {
 
 export function SimulationTab({ projectId, token }: SimulationTabProps) {
   const t = useTranslations("simulation");
-  const tc = useTranslations("common");
   const params = useParams();
   const locale = (params?.locale as string) ?? "fr";
 
@@ -30,8 +29,6 @@ export function SimulationTab({ projectId, token }: SimulationTabProps) {
   useEffect(() => {
     fetchHistory(projectId, token);
   }, [projectId, token, fetchHistory]);
-
-  void tc; // tc used for potential future common keys
 
   return (
     <div className="space-y-6">
