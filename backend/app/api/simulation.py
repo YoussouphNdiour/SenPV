@@ -17,7 +17,7 @@ from app.models.panel_layout import PanelLayout
 from app.models.project import Project
 from app.models.roof_zone import RoofZone
 from app.models.simulation import Simulation
-from app.schemas.simulation import SimulateRequest, SimulationRead
+from app.schemas.simulation import OptimizeResponse, SimulateRequest, SimulationRead
 from app.services.pvlib_service import optimize_tilt_azimuth, simulate_pv
 
 logger = logging.getLogger(__name__)
@@ -38,8 +38,8 @@ def _get_redis():
         return None
 
 
-def _cache_key(lat, lon, tilt, azimuth, panel_model_id, num_panels, num_strings):
-    raw = f"{lat}:{lon}:{tilt}:{azimuth}:{panel_model_id}:{num_panels}:{num_strings}"
+def _cache_key(lat, lon, tilt, azimuth, panel_model_id, num_panels, num_strings, losses_pct=14.0, albedo=0.2):
+    raw = f"{lat}:{lon}:{tilt}:{azimuth}:{panel_model_id}:{num_panels}:{num_strings}:{losses_pct}:{albedo}"
     return f"sim:{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
 
 
@@ -124,6 +124,7 @@ async def run_simulation(
     cache_k = _cache_key(
         project.lat, project.lon, tilt, azimuth,
         str(layout.panel_model_id), layout.num_panels, layout.num_strings,
+        body.losses_pct, body.albedo,
     )
     r = _get_redis()
     if r:
@@ -208,7 +209,7 @@ async def list_simulations(
     return result.scalars().all()
 
 
-@router.post("/optimize")
+@router.post("/optimize", response_model=OptimizeResponse)
 async def optimize(
     project_id: uuid.UUID,
     user: CurrentUser,

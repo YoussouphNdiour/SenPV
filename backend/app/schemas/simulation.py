@@ -12,6 +12,12 @@ class SimulateRequest(BaseModel):
     albedo: float = Field(default=0.2, ge=0, le=1.0)
 
 
+class OptimizeResponse(BaseModel):
+    optimal_tilt: float
+    optimal_azimuth: float
+    annual_kwh: float
+
+
 class SimulationCreate(BaseModel):
     project_id: uuid.UUID
     panel_layout_id: uuid.UUID
