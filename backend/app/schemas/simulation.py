@@ -2,7 +2,14 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class SimulateRequest(BaseModel):
+    """Optional body for POST /projects/{id}/simulate."""
+    panel_layout_id: uuid.UUID | None = None
+    losses_pct: float = Field(default=14.0, ge=0, le=50)
+    albedo: float = Field(default=0.2, ge=0, le=1.0)
 
 
 class SimulationCreate(BaseModel):
