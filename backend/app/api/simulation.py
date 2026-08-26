@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import logging
@@ -58,6 +59,8 @@ async def _load_layout_with_equipment(
         layout = result.scalar_one_or_none()
         if not layout:
             raise HTTPException(status_code=404, detail="Panel layout not found")
+        if layout.roof_zone.project_id != project_id:
+            raise HTTPException(status_code=403, detail="Panel layout does not belong to this project")
     else:
         # Find first layout for this project
         result = await db.execute(
@@ -133,7 +136,8 @@ async def run_simulation(
             sim_result = json.loads(cached)
             logger.info("Cache hit for simulation %s", cache_k)
         else:
-            sim_result = simulate_pv(
+            sim_result = await asyncio.to_thread(
+                simulate_pv,
                 lat=project.lat, lon=project.lon,
                 tilt=tilt, azimuth=azimuth,
                 panel_specs=panel_specs,
@@ -146,7 +150,8 @@ async def run_simulation(
             )
             r.setex(cache_k, CACHE_TTL, json.dumps(sim_result))
     else:
-        sim_result = simulate_pv(
+        sim_result = await asyncio.to_thread(
+            simulate_pv,
             lat=project.lat, lon=project.lon,
             tilt=tilt, azimuth=azimuth,
             panel_specs=panel_specs,
@@ -241,7 +246,8 @@ async def optimize(
         if cached:
             return json.loads(cached)
 
-    result = optimize_tilt_azimuth(
+    result = await asyncio.to_thread(
+        optimize_tilt_azimuth,
         lat=project.lat, lon=project.lon,
         panel_specs=panel_specs,
         num_panels=layout.num_panels,

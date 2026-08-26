@@ -22,7 +22,7 @@ class SimulationCreate(BaseModel):
     project_id: uuid.UUID
     panel_layout_id: uuid.UUID
     params: dict
-    monthly_production: dict
+    monthly_production: list
     annual_kwh: Decimal
     specific_yield: Decimal | None = None
     peak_power_kwc: Decimal | None = None
@@ -36,7 +36,7 @@ class SimulationRead(BaseModel):
     project_id: uuid.UUID
     panel_layout_id: uuid.UUID
     params: dict
-    monthly_production: dict
+    monthly_production: list
     annual_kwh: Decimal
     specific_yield: Decimal | None = None
     peak_power_kwc: Decimal | None = None

@@ -57,11 +57,28 @@ def _simulate_with_pvlib(
     inverter_specs: dict | None,
     peak_kwc: float,
 ) -> dict:
-    """Run pvlib ModelChain simulation."""
+    """Run pvlib ModelChain simulation (fetches TMY data from PVGIS)."""
     location = Location(lat, lon, tz="Africa/Dakar", altitude=30)
-
     tmy_data, _, _, _ = pvlib.iotools.get_pvgis_tmy(lat, lon, map_variables=True)
+    return _simulate_with_tmy(
+        tmy_data, location, tilt, azimuth, panel_specs, num_panels,
+        num_strings, panels_per_string, inverter_specs, peak_kwc,
+    )
 
+
+def _simulate_with_tmy(
+    tmy_data,
+    location: "Location",
+    tilt: float,
+    azimuth: float,
+    panel_specs: dict,
+    num_panels: int,
+    num_strings: int,
+    panels_per_string: int,
+    inverter_specs: dict | None,
+    peak_kwc: float,
+) -> dict:
+    """Run pvlib ModelChain simulation using pre-fetched TMY data."""
     module_parameters = {
         "pdc0": panel_specs["pmax_w"],
         "v_mp": panel_specs["vmp_v"],
@@ -157,14 +174,24 @@ def optimize_tilt_azimuth(
     best_tilt = lat  # rule of thumb: tilt ≈ latitude
     best_azimuth = 180  # south for northern hemisphere
 
+    # Fetch TMY data once — reused across all 70 combinations
+    try:
+        tmy_data, _, _, _ = pvlib.iotools.get_pvgis_tmy(lat, lon, map_variables=True)
+    except Exception as exc:
+        logger.warning("TMY fetch failed in optimizer, returning rule-of-thumb defaults: %s", exc)
+        return {"optimal_tilt": best_tilt, "optimal_azimuth": best_azimuth, "annual_kwh": 0.0}
+
+    location = Location(lat, lon, tz="Africa/Dakar", altitude=30)
+    peak_kwc = panel_specs["pmax_w"] * num_panels / 1000
+
     # Sweep tilt 0-45° by 5°, azimuth 135-225° by 15°
     for tilt in range(0, 50, 5):
         for azimuth in range(135, 226, 15):
             try:
-                result = simulate_pv(
-                    lat, lon, float(tilt), float(azimuth),
+                result = _simulate_with_tmy(
+                    tmy_data, location, float(tilt), float(azimuth),
                     panel_specs, num_panels, num_strings, panels_per_string,
-                    inverter_specs,
+                    inverter_specs, peak_kwc,
                 )
                 if result["annual_kwh"] > best_kwh:
                     best_kwh = result["annual_kwh"]
