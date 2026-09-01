@@ -9,6 +9,7 @@ services:
       - API_URL=http://backend:8000
       - NEXTAUTH_URL=http://${DOMAIN}:3100
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - AUTH_TRUST_HOST=true
     depends_on:
       - backend
     restart: unless-stopped
