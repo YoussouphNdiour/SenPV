@@ -23,7 +23,8 @@ from app.api.reports import router as reports_router
 from app.api.schematics import router as schematics_router
 from app.api.simulation import router as simulation_router
 from app.config import settings
-from app.database import async_session, engine
+from app.database import Base, async_session, engine
+from app.models import *  # noqa: F401,F403 — register all models
 from app.services.seed_equipment import seed_equipment
 
 logger = logging.getLogger("senpv")
@@ -37,6 +38,10 @@ logging.basicConfig(
 async def lifespan(app: FastAPI):
     # Ensure upload directory exists
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+
+    # Create tables if they don't exist (first launch)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     # Seed global equipment catalog
     async with async_session() as db:
