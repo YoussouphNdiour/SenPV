@@ -13,7 +13,7 @@ class PanelLayout(Base):
     __tablename__ = "panel_layouts"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default="gen_random_uuid()"
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     roof_zone_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("roof_zones.id", ondelete="CASCADE"), nullable=False

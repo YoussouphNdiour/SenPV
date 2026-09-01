@@ -13,7 +13,7 @@ class FinancialAnalysis(Base):
     __tablename__ = "financial_analyses"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default="gen_random_uuid()"
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     simulation_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("simulations.id", ondelete="CASCADE"), nullable=False
