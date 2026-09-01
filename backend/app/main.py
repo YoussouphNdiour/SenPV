@@ -60,6 +60,8 @@ app = FastAPI(
 _origins = ["http://localhost:3000", "http://frontend:3000"]
 if settings.domain:
     _origins.append(f"https://{settings.domain}")
+    _origins.append(f"http://{settings.domain}")
+    _origins.append(f"http://{settings.domain}:3100")
 
 app.add_middleware(
     CORSMiddleware,
