@@ -6,6 +6,7 @@ services:
       - "3100:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://${DOMAIN}:8100
+      - API_URL=http://backend:8000
       - NEXTAUTH_URL=http://${DOMAIN}:3100
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     depends_on:
