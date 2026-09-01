@@ -125,17 +125,15 @@ async def installer_headers(client: AsyncClient) -> dict[str, str]:
 @pytest_asyncio.fixture
 async def admin_headers(client: AsyncClient) -> dict[str, str]:
     """Create an admin user directly in DB and return auth headers."""
-    from passlib.context import CryptContext
+    import bcrypt
 
     from app.models.user import User
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     async with TestSessionLocal() as db:
         admin = User(
             email="admin@test.com",
             name="Admin User",
-            password_hash=pwd_context.hash("adminpass123"),
+            password_hash=bcrypt.hashpw(b"adminpass123", bcrypt.gensalt()).decode(),
             role="admin",
         )
         db.add(admin)

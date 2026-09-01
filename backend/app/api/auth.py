@@ -4,9 +4,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
 
+import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from jose import jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -26,8 +26,6 @@ from app.schemas.user import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg"}
 MAX_LOGO_SIZE = 2 * 1024 * 1024  # 2MB
@@ -67,7 +65,7 @@ async def register(
     user = User(
         email=data.email,
         name=data.name,
-        password_hash=pwd_context.hash(data.password),
+        password_hash=bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode(),
         role=data.role,
     )
     db.add(user)
@@ -97,7 +95,7 @@ async def login(
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 
-    if not user or not user.password_hash or not pwd_context.verify(data.password, user.password_hash):
+    if not user or not user.password_hash or not bcrypt.checkpw(data.password.encode(), user.password_hash.encode()):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

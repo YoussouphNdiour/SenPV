@@ -3,13 +3,11 @@
 import asyncio
 import os
 
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy import select
 
 from app.database import async_session
 from app.models.user import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 async def seed_admin():
@@ -25,7 +23,7 @@ async def seed_admin():
         admin = User(
             email=email,
             name="Admin SenPV",
-            password_hash=pwd_context.hash(password),
+            password_hash=bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
             role="admin",
         )
         db.add(admin)
