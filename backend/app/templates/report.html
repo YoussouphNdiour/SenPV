@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 2cm;
+    @bottom-center {
+      content: "Page " counter(page) " / " counter(pages);
+      font-size: 8pt;
+      color: #999;
+    }
+  }
+  @page :first {
+    @bottom-center { content: none; }
+  }
+  @page landscape {
+    size: A4 landscape;
+    margin: 1.5cm;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    color: #1a1a1a;
+    line-height: 1.5;
+  }
+
+  /* ---------- COVER PAGE ---------- */
+  .cover {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 85vh;
+    text-align: center;
+  }
+  .cover-brand {
+    font-size: 36pt;
+    font-weight: 800;
+    color: #1e3a5f;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .cover-subtitle {
+    font-size: 12pt;
+    color: #f59e0b;
+    font-weight: 600;
+    margin-bottom: 48px;
+  }
+  .cover-logo {
+    max-height: 80px;
+    max-width: 240px;
+    margin-bottom: 32px;
+  }
+  .cover-project {
+    font-size: 22pt;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-bottom: 12px;
+  }
+  .cover-address {
+    font-size: 11pt;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .cover-date {
+    font-size: 10pt;
+    color: #888;
+    margin-top: 32px;
+  }
+  .cover-client {
+    font-size: 11pt;
+    color: #333;
+    margin-top: 8px;
+  }
+  .cover-installer {
+    font-size: 10pt;
+    color: #555;
+    margin-top: 24px;
+  }
+
+  /* ---------- SECTIONS ---------- */
+  .section {
+    page-break-before: always;
+  }
+  .section:first-of-type {
+    page-break-before: auto;
+  }
+  .section-title {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #1e3a5f;
+    border-bottom: 3px solid #f59e0b;
+    padding-bottom: 6px;
+    margin-bottom: 20px;
+  }
+  .subsection-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+
+  /* ---------- KPI GRID ---------- */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    background: #f9fafb;
+  }
+  .kpi-label {
+    font-size: 9pt;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .kpi-value {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-top: 2px;
+  }
+  .kpi-unit {
+    font-size: 10pt;
+    font-weight: 400;
+    color: #888;
+  }
+
+  /* ---------- TABLES ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 9.5pt;
+  }
+  thead th {
+    background: #1e3a5f;
+    color: white;
+    padding: 7px 10px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  thead th.num { text-align: right; }
+  tbody td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  tbody td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  tbody tr:nth-child(even) { background: #f9fafb; }
+
+  /* ---------- CHARTS ---------- */
+  .chart-container {
+    margin: 16px 0;
+    text-align: center;
+  }
+  .chart-container svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* ---------- SCHEMATIC ---------- */
+  .schematic-page {
+    page: landscape;
+    page-break-before: always;
+    text-align: center;
+  }
+  .schematic-page svg {
+    max-width: 100%;
+    max-height: 75vh;
+  }
+
+  /* ---------- QUOTE SECTION ---------- */
+  .totals {
+    margin-left: auto;
+    width: 300px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 10pt;
+  }
+  .total-row.grand-total {
+    border-top: 2px solid #1e3a5f;
+    margin-top: 4px;
+    padding-top: 8px;
+    font-size: 12pt;
+    font-weight: 700;
+    color: #1e3a5f;
+  }
+  .total-label { color: #555; }
+  .total-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---------- FOOTER / MENTIONS ---------- */
+  .mentions {
+    page-break-before: always;
+    text-align: center;
+    padding-top: 30vh;
+  }
+  .mentions-brand {
+    font-size: 20pt;
+    font-weight: 800;
+    color: #1e3a5f;
+    margin-bottom: 16px;
+  }
+  .mentions-text {
+    font-size: 9pt;
+    color: #888;
+    line-height: 1.8;
+  }
+  .mentions-text p { margin-bottom: 6px; }
+
+  /* ---------- HYPOTHESES ---------- */
+  .hypotheses {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: #f0f5ff;
+    border-left: 3px solid #1e3a5f;
+    border-radius: 4px;
+    font-size: 9pt;
+    color: #555;
+  }
+  .hypotheses strong { color: #1e3a5f; }
+</style>
+</head>
+<body>
+
+  <!-- ================= PAGE 1: COVER ================= -->
+  <div class="cover">
+    <div class="cover-brand">SenPV</div>
+    <div class="cover-subtitle">Dimensionnement solaire photovolta&iuml;que</div>
+
+    {% if logo_base64 %}
+      <img src="data:image/png;base64,{{ logo_base64 }}" class="cover-logo" alt="Logo">
+    {% endif %}
+
+    <div class="cover-project">{{ project_name }}</div>
+    {% if project_address %}
+      <div class="cover-address">{{ project_address }}</div>
+    {% endif %}
+    <div class="cover-address">{{ project_lat }}&deg;N, {{ project_lon }}&deg;W</div>
+
+    {% if client_name %}
+      <div class="cover-client">Client : {{ client_name }}</div>
+    {% endif %}
+
+    {% if installer_company %}
+      <div class="cover-installer">
+        {{ installer_company }}
+        {% if installer_phone %} &mdash; {{ installer_phone }}{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="cover-date">Rapport g&eacute;n&eacute;r&eacute; le {{ generated_at }}</div>
+  </div>
+
+  <!-- ================= PAGE 2: EXECUTIVE SUMMARY ================= -->
+  {% if simulation or financial %}
+  <div class="section">
+    <div class="section-title">R&eacute;sum&eacute; ex&eacute;cutif</div>
+
+    <div class="kpi-grid">
+      {% if simulation %}
+      <div class="kpi-card">
+        <div class="kpi-label">Puissance cr&ecirc;te</div>
+        <div class="kpi-value">{{ "%.1f"|format(simulation.peak_power_kwc or 0) }} <span class="kpi-unit">kWc</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Production annuelle</div>
+        <div class="kpi-value">{{ format_fcfa(simulation.annual_kwh or 0) }} <span class="kpi-unit">kWh</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Productivit&eacute;</div>
+        <div class="kpi-value">{{ "%.0f"|format(simulation.specific_yield or 0) }} <span class="kpi-unit">kWh/kWc</span></div>
+      </div>
+      {% endif %}
+      {% if financial %}
+      <div class="kpi-card">
+        <div class="kpi-label">&Eacute;conomie annuelle</div>
+        <div class="kpi-value">{{ format_fcfa(financial.annual_savings_year1_fcfa or 0) }} <span class="kpi-unit">FCFA</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Retour sur investissement</div>
+        <div class="kpi-value">{{ "%.1f"|format(financial.payback_years or 0) }} <span class="kpi-unit">ans</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">VAN</div>
+        <div class="kpi-value">{{ format_fcfa(financial.npv_fcfa or 0) }} <span class="kpi-unit">FCFA</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">TRI</div>
+        <div class="kpi-value">{{ "%.1f"|format(financial.irr_pct or 0) }} <span class="kpi-unit">%</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Co&ucirc;t total</div>
+        <div class="kpi-value">{{ format_fcfa(financial.total_cost_fcfa or 0) }} <span class="kpi-unit">FCFA</span></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= PAGE 3: TECHNICAL CONFIG ================= -->
+  {% if simulation %}
+  <div class="section">
+    <div class="section-title">Configuration technique</div>
+
+    {% if simulation.panel_info %}
+    <div class="subsection-title">Panneaux solaires</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Param&egrave;tre</th>
+          <th class="num">Valeur</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Mod&egrave;le</td><td class="num">{{ simulation.panel_info.model or "—" }}</td></tr>
+        <tr><td>Puissance unitaire</td><td class="num">{{ simulation.panel_info.pmax_w or "—" }} W</td></tr>
+        <tr><td>Nombre de panneaux</td><td class="num">{{ simulation.num_panels or "—" }}</td></tr>
+        <tr><td>Inclinaison</td><td class="num">{{ simulation.tilt or "—" }}&deg;</td></tr>
+        <tr><td>Orientation (azimuth)</td><td class="num">{{ simulation.azimuth or "—" }}&deg;</td></tr>
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if simulation.inverter_info %}
+    <div class="subsection-title">Onduleur</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Param&egrave;tre</th>
+          <th class="num">Valeur</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Mod&egrave;le</td><td class="num">{{ simulation.inverter_info.model or "—" }}</td></tr>
+        <tr><td>Puissance nominale</td><td class="num">{{ simulation.inverter_info.rated_ac_power_kw or "—" }} kW</td></tr>
+        <tr><td>Nombre MPPT</td><td class="num">{{ simulation.inverter_info.num_mppt or "—" }}</td></tr>
+        <tr><td>Rendement max</td><td class="num">{{ simulation.inverter_info.max_efficiency_pct or "—" }} %</td></tr>
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ================= PAGE 4: SOLAR PRODUCTION ================= -->
+  {% if simulation %}
+  <div class="section">
+    <div class="section-title">Production solaire</div>
+
+    {% if charts.production_monthly %}
+    <div class="chart-container">
+      {{ charts.production_monthly }}
+    </div>
+    {% endif %}
+
+    {% if simulation.monthly_production %}
+    <table>
+      <thead>
+        <tr>
+          <th>Mois</th>
+          <th class="num">Production (kWh)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in simulation.monthly_production %}
+        <tr>
+          <td>{{ monthly_names[m.month - 1] if m.month is number else m.month }}</td>
+          <td class="num">{{ "%.1f"|format(m.kwh) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p style="font-weight: 600; margin-top: 8px;">
+      Production annuelle totale : {{ format_fcfa(simulation.annual_kwh or 0) }} kWh
+    </p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ================= PAGE 5: FINANCIAL ANALYSIS ================= -->
+  {% if financial %}
+  <div class="section">
+    <div class="section-title">Analyse &eacute;conomique</div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Retour sur investissement</div>
+        <div class="kpi-value">{{ "%.1f"|format(financial.payback_years or 0) }} ans</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">VAN (25 ans)</div>
+        <div class="kpi-value">{{ format_fcfa(financial.npv_fcfa or 0) }} FCFA</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">TRI</div>
+        <div class="kpi-value">{{ "%.1f"|format(financial.irr_pct or 0) }} %</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">LCOE</div>
+        <div class="kpi-value">{{ "%.1f"|format(financial.lcoe_fcfa_per_kwh or 0) }} FCFA/kWh</div>
+      </div>
+    </div>
+
+    {% if charts.cashflow %}
+    <div class="chart-container">
+      {{ charts.cashflow }}
+    </div>
+    {% endif %}
+
+    <div class="hypotheses">
+      <strong>Hypoth&egrave;ses :</strong>
+      D&eacute;gradation panneaux : 0,5%/an &mdash;
+      Inflation tarif : 2%/an &mdash;
+      Taux d'actualisation : 8% &mdash;
+      Dur&eacute;e : 25 ans
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= PAGE 6: SCHEMATIC ================= -->
+  {% if schematic_svg %}
+  <div class="schematic-page">
+    <div class="section-title" style="text-align: left;">Sch&eacute;ma unifilaire</div>
+    <div style="margin-top: 16px;">
+      {{ schematic_svg }}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= PAGE 7+: QUOTE ================= -->
+  {% if quote %}
+  <div class="section">
+    <div class="section-title">Devis &mdash; {{ quote.reference }}</div>
+
+    <p style="margin-bottom: 12px; font-size: 9pt; color: #666;">
+      Date : {{ quote.date }} &mdash; Validit&eacute; : {{ quote.validity_days }} jours
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30px; text-align: center;">#</th>
+          <th>Description</th>
+          <th class="num">Qt&eacute;</th>
+          <th class="num">Prix unitaire</th>
+          <th class="num">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in quote.line_items %}
+        <tr>
+          <td style="text-align: center;">{{ loop.index }}</td>
+          <td>{{ item.description }}</td>
+          <td class="num">{{ item.quantity }}</td>
+          <td class="num">{{ format_fcfa(item.unit_price_fcfa) }} FCFA</td>
+          <td class="num">{{ format_fcfa(item.quantity * item.unit_price_fcfa) }} FCFA</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <div class="total-row">
+        <span class="total-label">Sous-total HT</span>
+        <span class="total-value">{{ quote.subtotal }} FCFA</span>
+      </div>
+      {% if quote.margin_pct %}
+      <div class="total-row">
+        <span class="total-label">Marge ({{ quote.margin_pct }}%)</span>
+        <span class="total-value">{{ quote.margin_amount }} FCFA</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">Total HT</span>
+        <span class="total-value">{{ quote.total_ht }} FCFA</span>
+      </div>
+      {% endif %}
+      <div class="total-row">
+        <span class="total-label">TVA ({{ quote.tax_rate_pct }}%)</span>
+        <span class="total-value">{{ quote.tax_amount }} FCFA</span>
+      </div>
+      <div class="total-row grand-total">
+        <span class="total-label">TOTAL TTC</span>
+        <span class="total-value">{{ quote.total_ttc }} FCFA</span>
+      </div>
+    </div>
+
+    {% if quote.payment_terms %}
+    <div class="hypotheses" style="margin-top: 20px;">
+      <strong>Conditions de paiement :</strong> {{ quote.payment_terms }}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ================= LAST PAGE: MENTIONS ================= -->
+  <div class="mentions">
+    <div class="mentions-brand">SenPV</div>
+    <div class="mentions-text">
+      <p>Rapport g&eacute;n&eacute;r&eacute; par SenPV &mdash; {{ generated_at }}</p>
+      <p>Les r&eacute;sultats de simulation sont indicatifs et bas&eacute;s sur des donn&eacute;es m&eacute;t&eacute;orologiques moyennes.</p>
+      <p>Les performances r&eacute;elles peuvent varier en fonction des conditions locales.</p>
+      {% if installer_company %}
+      <p style="margin-top: 16px;">
+        <strong>{{ installer_company }}</strong>
+        {% if installer_address %}<br>{{ installer_address }}{% endif %}
+        {% if installer_phone %}<br>{{ installer_phone }}{% endif %}
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+</body>
+</html>

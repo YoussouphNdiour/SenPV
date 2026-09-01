@@ -33,6 +33,8 @@ import { StatusBadge } from "@/components/layout/StatusBadge";
 import { MapView } from "@/components/map/MapView";
 import { PanelsTab } from "@/components/panels/PanelsTab";
 import { SimulationTab } from "@/components/simulation/SimulationTab";
+import { QuoteTab } from "@/components/quote/QuoteTab";
+import { ReportTab } from "@/components/report/ReportTab";
 import { useProjectStore } from "@/store/project";
 import { useMapStore } from "@/store/map";
 import { usePanelStore } from "@/store/panels";
@@ -43,6 +45,11 @@ import type { ProjectStatus } from "@/types/project";
 const RoofScene = dynamic(
   () =>
     import("@/components/viewer3d/RoofScene").then((mod) => mod.RoofScene),
+  { ssr: false }
+);
+
+const SchematicEditor = dynamic(
+  () => import("@/components/schematic/SchematicEditor"),
   { ssr: false }
 );
 
@@ -320,29 +327,43 @@ export default function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="schematic" className="mt-6">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              {t("tabs.schematic")} — {tc("loading")}
-            </CardContent>
-          </Card>
+          {token ? (
+            <div className="h-[700px] overflow-hidden rounded-lg border">
+              <SchematicEditor projectId={project.id} token={token} />
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                {tc("loading")}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {isInstaller && (
           <TabsContent value="quote" className="mt-6">
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                {t("tabs.quote")} — {tc("loading")}
-              </CardContent>
-            </Card>
+            {token ? (
+              <QuoteTab projectId={project.id} token={token} />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  {tc("loading")}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         )}
 
         <TabsContent value="report" className="mt-6">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              {t("tabs.report")} — {tc("loading")}
-            </CardContent>
-          </Card>
+          {token ? (
+            <ReportTab projectId={project.id} token={token} />
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                {tc("loading")}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

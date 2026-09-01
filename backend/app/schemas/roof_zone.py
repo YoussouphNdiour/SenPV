@@ -29,6 +29,7 @@ class RoofZoneRead(BaseModel):
 
     id: uuid.UUID
     project_id: uuid.UUID
+    polygon: Any | None = None
     orientation_deg: Decimal | None = None
     tilt_deg: Decimal | None = None
     roof_type: str | None = None

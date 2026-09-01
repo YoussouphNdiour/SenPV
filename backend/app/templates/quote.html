@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    line-height: 1.4;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #2563eb;
+  }
+  .installer-info {
+    max-width: 55%;
+  }
+  .installer-logo {
+    max-height: 60px;
+    max-width: 180px;
+    margin-bottom: 8px;
+  }
+  .installer-name {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #2563eb;
+  }
+  .installer-detail {
+    font-size: 9pt;
+    color: #555;
+  }
+  .quote-meta {
+    text-align: right;
+  }
+  .quote-title {
+    font-size: 20pt;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 8px;
+  }
+  .meta-line {
+    font-size: 9pt;
+    color: #555;
+  }
+  .meta-value {
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
+  /* Client & Project */
+  .section {
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #2563eb;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 24px;
+  }
+  .info-label {
+    font-size: 9pt;
+    color: #777;
+  }
+  .info-value {
+    font-size: 10pt;
+    font-weight: 500;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+  }
+  thead th {
+    background: #2563eb;
+    color: white;
+    padding: 8px 10px;
+    font-size: 9pt;
+    font-weight: 600;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  thead th:first-child {
+    width: 30px;
+    text-align: center;
+  }
+  thead th.num {
+    text-align: right;
+  }
+  tbody td {
+    padding: 7px 10px;
+    font-size: 10pt;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  tbody td:first-child {
+    text-align: center;
+    color: #888;
+    font-size: 9pt;
+  }
+  tbody td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  tbody tr:nth-child(even) {
+    background: #f9fafb;
+  }
+
+  /* Totals */
+  .totals {
+    margin-left: auto;
+    width: 320px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 10pt;
+  }
+  .total-row.subtotal {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+  }
+  .total-row.grand-total {
+    border-top: 2px solid #2563eb;
+    margin-top: 4px;
+    padding-top: 8px;
+    font-size: 13pt;
+    font-weight: 700;
+    color: #2563eb;
+  }
+  .total-label {
+    color: #555;
+  }
+  .total-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Footer sections */
+  .payment-terms {
+    margin-top: 24px;
+    padding: 12px 16px;
+    background: #f0f5ff;
+    border-left: 3px solid #2563eb;
+    border-radius: 4px;
+  }
+  .payment-terms-title {
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #2563eb;
+    margin-bottom: 4px;
+  }
+  .payment-terms-text {
+    font-size: 10pt;
+    white-space: pre-line;
+  }
+
+  .footer {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+  }
+  .legal {
+    font-size: 8pt;
+    color: #888;
+    margin-bottom: 24px;
+  }
+  .signature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  .signature-box {
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    padding: 12px;
+    min-height: 80px;
+  }
+  .signature-label {
+    font-size: 9pt;
+    color: #777;
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="installer-info">
+      {% if logo_base64 %}
+        <img src="data:image/png;base64,{{ logo_base64 }}" class="installer-logo" alt="Logo">
+      {% else %}
+        <div class="installer-name">{{ installer_company }}</div>
+      {% endif %}
+      {% if installer_address %}
+        <div class="installer-detail">{{ installer_address }}</div>
+      {% endif %}
+      {% if installer_phone %}
+        <div class="installer-detail">{{ installer_phone }}</div>
+      {% endif %}
+    </div>
+    <div class="quote-meta">
+      <div class="quote-title">DEVIS</div>
+      <div class="meta-line">Ref: <span class="meta-value">{{ reference }}</span></div>
+      <div class="meta-line">Date: <span class="meta-value">{{ date }}</span></div>
+      <div class="meta-line">Validite: <span class="meta-value">{{ validity_days }} jours</span></div>
+    </div>
+  </div>
+
+  <!-- Client & Project info -->
+  <div class="section">
+    <div class="section-title">Client</div>
+    <div class="info-grid">
+      <div>
+        <div class="info-label">Nom</div>
+        <div class="info-value">{{ client_name or "—" }}</div>
+      </div>
+      <div>
+        <div class="info-label">Telephone</div>
+        <div class="info-value">{{ client_phone or "—" }}</div>
+      </div>
+      <div>
+        <div class="info-label">Adresse</div>
+        <div class="info-value">{{ client_address or "—" }}</div>
+      </div>
+      <div>
+        <div class="info-label">Email</div>
+        <div class="info-value">{{ client_email or "—" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Projet</div>
+    <div class="info-grid">
+      <div>
+        <div class="info-label">Nom du projet</div>
+        <div class="info-value">{{ project_name }}</div>
+      </div>
+      <div>
+        <div class="info-label">Adresse installation</div>
+        <div class="info-value">{{ project_address or "—" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Line items table -->
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Description</th>
+        <th class="num">Qte</th>
+        <th class="num">Prix unitaire</th>
+        <th class="num">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in line_items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.description }}</td>
+        <td class="num">{{ item.quantity }}</td>
+        <td class="num">{{ "{:,.0f}".format(item.unit_price_fcfa).replace(",", " ") }} FCFA</td>
+        <td class="num">{{ "{:,.0f}".format(item.quantity * item.unit_price_fcfa).replace(",", " ") }} FCFA</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Totals -->
+  <div class="totals">
+    <div class="total-row subtotal">
+      <span class="total-label">Sous-total HT</span>
+      <span class="total-value">{{ subtotal }} FCFA</span>
+    </div>
+    {% if margin_pct %}
+    <div class="total-row">
+      <span class="total-label">Marge ({{ margin_pct }}%)</span>
+      <span class="total-value">{{ margin_amount }} FCFA</span>
+    </div>
+    <div class="total-row">
+      <span class="total-label">Total HT</span>
+      <span class="total-value">{{ total_ht }} FCFA</span>
+    </div>
+    {% endif %}
+    <div class="total-row">
+      <span class="total-label">TVA ({{ tax_rate_pct }}%)</span>
+      <span class="total-value">{{ tax_amount }} FCFA</span>
+    </div>
+    <div class="total-row grand-total">
+      <span class="total-label">TOTAL TTC</span>
+      <span class="total-value">{{ total_ttc }} FCFA</span>
+    </div>
+  </div>
+
+  <!-- Payment terms -->
+  {% if payment_terms %}
+  <div class="payment-terms">
+    <div class="payment-terms-title">Conditions de paiement</div>
+    <div class="payment-terms-text">{{ payment_terms }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="legal">
+      Devis valable {{ validity_days }} jours a compter de la date d'emission.
+    </div>
+    <div class="signature-grid">
+      <div class="signature-box">
+        <div class="signature-label">Signature client</div>
+      </div>
+      <div class="signature-box">
+        <div class="signature-label">Date</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

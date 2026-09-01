@@ -8,3 +8,5 @@ dist/
 pgdata/
 redisdata/
 /data/uploads/
+*.db
+frontend/AGENTS.md

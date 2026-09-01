@@ -39,3 +39,4 @@ class ClientRead(BaseModel):
     notes: str | None = None
     created_at: datetime
     updated_at: datetime
+    project_count: int = 0

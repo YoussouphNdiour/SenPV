@@ -9,6 +9,6 @@ from app.schemas.panel_layout import PanelLayoutCreate, PanelLayoutUpdate, Panel
 from app.schemas.equipment import EquipmentCreate, EquipmentUpdate, EquipmentRead
 from app.schemas.simulation import SimulationCreate, SimulationRead
 from app.schemas.financial import FinancialAnalysisCreate, FinancialAnalysisRead
-from app.schemas.schematic import SchematicCreate, SchematicUpdate, SchematicRead
-from app.schemas.quote import QuoteCreate, QuoteUpdate, QuoteRead
+from app.schemas.schematic import SchematicUpdate, SchematicRead, SchematicGenerateResponse, SchematicValidateResponse
+from app.schemas.quote import QuoteCreate, QuoteUpdate, QuoteRead, QuoteCreateInput, QuoteUpdateInput, QuoteStatusUpdate, LineItem
 from app.schemas.report import ReportCreate, ReportRead

@@ -4,8 +4,44 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
+# --- Auth schemas ---
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    name: str
+    password: str
+    role: str = "particular"
+    company_name: str | None = None
+    phone: str | None = None
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: "UserRead"
+
+
+class ProfileUpdate(BaseModel):
+    name: str | None = None
+    locale: str | None = None
+    company_name: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    siret: str | None = None
+    payment_terms: str | None = None
+
+
+# --- User schemas ---
+
+
 class UserCreate(BaseModel):
-    email: str
+    email: EmailStr
     name: str
     password: str | None = None
     role: str = "particular"
@@ -30,6 +66,10 @@ class UserRead(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class UserWithProfile(UserRead):
+    installer_profile: "InstallerProfileRead | None" = None
 
 
 class InstallerProfileCreate(BaseModel):

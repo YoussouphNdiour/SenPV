@@ -1,28 +1,21 @@
-# Stage: dev (used by docker-compose.dev.yml)
-FROM node:20-alpine AS dev
+# Stage 1: Build
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
-
-# Stage: build
-FROM node:20-alpine AS build
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Stage: production
-FROM node:20-alpine AS production
+# Stage 2: Production
+FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 EXPOSE 3000
-
 CMD ["node", "server.js"]

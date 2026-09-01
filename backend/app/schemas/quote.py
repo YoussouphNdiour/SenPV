@@ -2,7 +2,35 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class LineItem(BaseModel):
+    description: str
+    quantity: int = Field(..., ge=1)
+    unit_price_fcfa: int = Field(..., ge=0)
+
+
+class QuoteCreateInput(BaseModel):
+    """What the API receives — totals are computed server-side."""
+    line_items: list[LineItem]
+    margin_pct: Decimal = Decimal("15.0")
+    tax_rate_pct: Decimal = Decimal("18.0")
+    payment_terms: str | None = None
+    validity_days: int = 30
+
+
+class QuoteUpdateInput(BaseModel):
+    """Partial update — totals are recomputed when line_items change."""
+    line_items: list[LineItem] | None = None
+    margin_pct: Decimal | None = None
+    tax_rate_pct: Decimal | None = None
+    payment_terms: str | None = None
+    validity_days: int | None = None
+
+
+class QuoteStatusUpdate(BaseModel):
+    status: str = Field(..., pattern=r"^(sent|accepted|rejected)$")
 
 
 class QuoteCreate(BaseModel):

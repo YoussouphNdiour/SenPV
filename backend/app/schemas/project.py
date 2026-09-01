@@ -38,3 +38,5 @@ class ProjectRead(BaseModel):
     notes: str | None = None
     created_at: datetime
     updated_at: datetime
+    client_name: str | None = None
+    panel_count: int = 0

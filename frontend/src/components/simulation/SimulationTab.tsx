@@ -8,8 +8,11 @@ import { Loader2, Zap, Sun, Gauge, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductionChart } from "@/components/charts/ProductionChart";
+import { BillingSection } from "@/components/senelec/BillingSection";
+import { FinancialSection } from "@/components/financial/FinancialSection";
 import { useSimulationStore } from "@/store/simulation";
 import { usePanelStore } from "@/store/panels";
+import { useSenelecStore } from "@/store/senelec";
 
 interface SimulationTabProps {
   projectId: string;
@@ -25,6 +28,7 @@ export function SimulationTab({ projectId, token }: SimulationTabProps) {
     useSimulationStore();
   const layouts = usePanelStore((s) => s.layouts);
   const hasPanels = layouts.some((l) => l.num_panels > 0);
+  const senelecSavings = useSenelecStore((s) => s.savings);
 
   useEffect(() => {
     fetchHistory(projectId, token);
@@ -171,6 +175,19 @@ export function SimulationTab({ projectId, token }: SimulationTabProps) {
           </Card>
         </>
       )}
+
+      {/* SENELEC Billing */}
+      <BillingSection
+        annualProductionKwh={current?.annual_kwh ?? null}
+      />
+
+      {/* Financial Analysis */}
+      <FinancialSection
+        projectId={projectId}
+        token={token}
+        annualSavingsFcfa={senelecSavings?.annual_savings_fcfa ?? null}
+        hasSimulation={!!current}
+      />
     </div>
   );
 }

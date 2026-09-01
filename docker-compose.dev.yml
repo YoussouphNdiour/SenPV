@@ -1,36 +1,19 @@
 services:
-  backend:
-    build: ./backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    volumes:
-      - ./backend:/app
-      - uploads:/data/uploads
+  postgres:
+    image: postgis/postgis:16-3.4
     ports:
-      - "8000:8000"
-
-  celery-worker:
-    volumes:
-      - ./backend:/app
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: dev
-    command: npm run dev -- -H 0.0.0.0
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    ports:
-      - "3000:3000"
+      - "5432:5432"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      - POSTGRES_DB=senpv
+      - POSTGRES_USER=senpv
+      - POSTGRES_PASSWORD=senpv-dev
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
 
-  # Disable Traefik in dev
-  traefik:
-    profiles:
-      - disabled
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
 
 volumes:
-  uploads:
+  pgdata-dev:

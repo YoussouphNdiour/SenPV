@@ -16,13 +16,13 @@
 | 07 | Panel Placement | ✅ | 2026-08-26 | 2026-08-26 | Calpinage UTM28N + undo + 18 tests algo |
 | 08 | 3D Viewer | ✅ | 2026-08-26 | 2026-08-26 | R3F + instancedMesh + 4 types toit + controls |
 | 09 | PV Simulation | ✅ | 2026-08-26 | 2026-08-26 | pvlib service + Redis cache + API + Celery + Recharts chart |
-| 10 | SENELEC Billing | ⬜ | | | |
-| 11 | Financial Analysis | ⬜ | | | |
-| 12 | Schematic Editor | ⬜ | | | |
+| 10 | SENELEC Billing | ✅ | 2026-08-26 | 2026-08-26 | Tarification progressive + savings + 15 tests |
+| 11 | Financial Analysis | ✅ | 2026-08-26 | 2026-08-27 | NPV/IRR/LCOE/cashflow 25 ans + 13 tests |
+| 12 | Schematic Editor | ✅ | 2026-08-27 | 2026-08-27 | networkx graph + React Flow editor + 29 tests |
 | 13 | Quote Builder | ⬜ | | | |
-| 14 | Report Generator | ⬜ | | | |
+| 14 | Report Generator | ✅ | 2026-09-01 | 2026-09-01 | PDF complet + devis + schéma, matplotlib charts, 17 tests |
 | 15 | Dashboard | ⬜ | | | |
-| 16 | Deploy | ⬜ | | | |
+| 16 | Deploy | ✅ | 2026-09-01 | 2026-09-01 | Docker + Traefik + Portainer + scripts + health |
 
 **Légende** : ⬜ À faire | 🔄 En cours | ✅ Terminé | ⚠️ Bloqué
 
@@ -58,6 +58,21 @@
 - Décisions prises : gamma_pdc doit être divisé par 100 (pvlib attend fraction, pas %). Mock TMY amélioré avec pvlib solar position pour que l'optimiseur converge vers azimuth=180° (sud). Redis graceful fallback quand indisponible. Fallback estimation basée sur 1650 kWh/kWc pour Dakar.
 - Bugs rencontrés : Aucun
 
+### Prompt 12 — Schematic Editor
+- Blocages : Aucun
+- Décisions prises : Layout hiérarchique manuel (pas pygraphviz). mppt_voltage_range_v parsé comme string "80-550" ou liste [80, 550]. SchematicCreate supprimé au profit de SchematicGenerateResponse. Export SVG basique (rectangles + lignes) pour inclusion PDF.
+- Bugs rencontrés : Aucun
+
+### Prompt 14 — Report Generator
+- Blocages : Aucun
+- Décisions prises : Génération synchrone dans l'endpoint API (pas de Celery pour le moment, WeasyPrint est assez rapide). Celery task créée mais prête pour usage futur. matplotlib pour graphiques SVG inline (production mensuelle + cashflow cumulé). Schéma unifilaire intégré via svg_snapshot du modèle Schematic. 3 types de PDF : full_report, quote_only, schematic_only. Tests skippés si WeasyPrint/matplotlib non disponibles dans l'env de test.
+- Bugs rencontrés : numpy 1.x/2.x incompatibilité avec matplotlib dans l'env Anaconda (pas un bug code, env local)
+
+### Prompt 16 — Deploy
+- Blocages : Aucun
+- Décisions prises : Dockerfiles production avec multi-stage (frontend) et PostGIS deps (backend). Traefik v3.1 avec HTTPS auto Let's Encrypt et HTTP→HTTPS redirect. Portainer CE pour gestion Docker. docker-compose.dev.yml simplifié (PostgreSQL + Redis uniquement). Health endpoint enrichi avec statut PostgreSQL et Redis. Logging structuré JSON + middleware temps de réponse. Scripts init.sh et backup.sh avec rotation 7 jours.
+- Bugs rencontrés : Aucun
+
 <!-- Copier ce template pour chaque prompt au fur et à mesure -->
 
 ---
@@ -66,7 +81,7 @@
 
 | Métrique | Valeur |
 |----------|--------|
-| Prompts terminés | 10/17 |
-| Tests passants | 100 |
+| Prompts terminés | 15/17 |
+| Tests passants | 176 |
 | Bugs ouverts | 0 |
 | Décisions techniques | 6 |

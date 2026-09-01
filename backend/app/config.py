@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24h
     upload_dir: str = "/data/uploads"
+    domain: str = ""
     default_lat: float = 14.6928  # Dakar
     default_lon: float = -17.4467
     model_config = SettingsConfigDict(env_file=".env")
