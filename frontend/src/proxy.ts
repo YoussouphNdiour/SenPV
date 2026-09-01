@@ -20,15 +20,16 @@ function isPublicPath(pathname: string): boolean {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Let next-intl handle locale routing first
+  // Skip i18n and auth entirely for API routes and static assets
+  if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
+    return NextResponse.next();
+  }
+
+  // Let next-intl handle locale routing
   const response = intlMiddleware(request);
 
-  // Skip auth check for public paths and API/static
-  if (
-    isPublicPath(pathname) ||
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/_next/")
-  ) {
+  // Skip auth check for public paths
+  if (isPublicPath(pathname)) {
     return response;
   }
 
