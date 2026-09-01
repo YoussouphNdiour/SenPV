@@ -1,10 +1,13 @@
 FROM python:3.12-slim
 
-# System dependencies for WeasyPrint + PostGIS
+# System dependencies for WeasyPrint
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 \
-    libcairo2 libffi-dev shared-mime-info \
-    libgdal-dev libgeos-dev libproj-dev \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
