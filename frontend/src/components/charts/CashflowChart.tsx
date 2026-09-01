@@ -61,8 +61,8 @@ export function CashflowChart({
             tickFormatter={formatFcfa}
           />
           <Tooltip
-            formatter={(value: number, name: string) => [
-              formatFcfaFull(value),
+            formatter={(value, name) => [
+              formatFcfaFull(Number(value)),
               name === "net_cashflow_fcfa" ? t("netCashflow") : t("cumulative"),
             ]}
             labelFormatter={(label) => `${t("year")} ${label}`}
@@ -104,7 +104,8 @@ export function CashflowChart({
             fill="#22c55e"
             radius={[2, 2, 0, 0]}
             // Color negative bars red via shape
-            shape={(props: Record<string, unknown>) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            shape={((props: any) => {
               const { x, y, width, height, payload } = props as {
                 x: number;
                 y: number;
@@ -124,7 +125,8 @@ export function CashflowChart({
                   ry={2}
                 />
               );
-            }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            }) as any}
           />
 
           {/* Cumulative line */}

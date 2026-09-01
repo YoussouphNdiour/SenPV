@@ -93,7 +93,8 @@ export default function ProjectDetailPage({
     }
   }, [token, id, fetchProject, fetchZones, fetchLayouts, fetchPanels, fetchInverters]);
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string | null) => {
+    if (!newStatus) return;
     if (!token || !currentProject) return;
     await updateStatus(currentProject.id, newStatus as ProjectStatus, token);
   };

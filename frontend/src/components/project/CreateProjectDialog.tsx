@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Map as MaplibreMap, Marker as MaplibreMarker } from "maplibre-gl";
 import { MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,8 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const mapRef = useRef<MaplibreMap | null>(null);
+  const markerRef = useRef<MaplibreMarker | null>(null);
 
   // Fetch clients for installer
   useEffect(() => {
@@ -72,7 +73,9 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: Props) {
   const initMap = useCallback(async () => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const maplibregl = (await import("maplibre-gl")).default;
+    const maplibreModule = await import("maplibre-gl");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const maplibregl = (maplibreModule as any).default ?? maplibreModule;
     await import("maplibre-gl/dist/maplibre-gl.css");
 
     const map = new maplibregl.Map({
@@ -92,7 +95,7 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: Props) {
       setLng(Math.round(pos.lng * 10000) / 10000);
     });
 
-    map.on("click", (e) => {
+    map.on("click", (e: { lngLat: { lat: number; lng: number } }) => {
       marker.setLngLat(e.lngLat);
       setLat(Math.round(e.lngLat.lat * 10000) / 10000);
       setLng(Math.round(e.lngLat.lng * 10000) / 10000);
@@ -214,8 +217,8 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: Props) {
               <Label>{t("client")}</Label>
               <Select
                 value={clientId}
-                onValueChange={(val) =>
-                  setClientId(val === "__none__" ? "" : val)
+                onValueChange={(val: string | null) =>
+                  setClientId(val === "__none__" || val === null ? "" : val)
                 }
               >
                 <SelectTrigger>
