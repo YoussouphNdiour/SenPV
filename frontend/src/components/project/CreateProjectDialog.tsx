@@ -80,7 +80,29 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: Props) {
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: `https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL`,
+      style: {
+        version: 8,
+        sources: {
+          "osm-tiles": {
+            type: "raster",
+            tiles: [
+              "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            ],
+            tileSize: 256,
+            attribution: "&copy; OpenStreetMap contributors",
+            maxzoom: 19,
+          },
+        },
+        layers: [
+          {
+            id: "osm-tiles",
+            type: "raster",
+            source: "osm-tiles",
+            minzoom: 0,
+            maxzoom: 22,
+          },
+        ],
+      },
       center: [lng, lat],
       zoom: 12,
     });

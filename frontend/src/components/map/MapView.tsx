@@ -97,8 +97,29 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
       const map = new maplibregl.Map({
         container: mapContainer.current,
-        style:
-          "https://api.maptiler.com/maps/satellite/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL",
+        style: {
+          version: 8,
+          sources: {
+            "esri-satellite": {
+              type: "raster",
+              tiles: [
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+              ],
+              tileSize: 256,
+              attribution: "&copy; Esri",
+              maxzoom: 19,
+            },
+          },
+          layers: [
+            {
+              id: "esri-satellite",
+              type: "raster",
+              source: "esri-satellite",
+              minzoom: 0,
+              maxzoom: 22,
+            },
+          ],
+        },
         center: [lon, lat],
         zoom: 19,
       });
