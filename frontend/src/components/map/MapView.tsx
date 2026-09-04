@@ -77,9 +77,9 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
   // Fetch zones, layouts, and equipment on mount
   useEffect(() => {
     if (token && projectId) {
-      fetchZones(projectId, token);
-      fetchLayouts(projectId, token);
-      fetchPanels(token);
+      fetchZones(projectId, token).catch(() => {});
+      fetchLayouts(projectId, token).catch(() => {});
+      fetchPanels(token).catch(() => {});
     }
   }, [token, projectId, fetchZones, fetchLayouts, fetchPanels]);
 
@@ -100,21 +100,24 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         style: {
           version: 8,
           sources: {
-            "esri-satellite": {
+            "google-satellite": {
               type: "raster",
               tiles: [
-                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                "https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+                "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+                "https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+                "https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
               ],
               tileSize: 256,
-              attribution: "&copy; Esri",
-              maxzoom: 19,
+              attribution: "&copy; Google",
+              maxzoom: 22,
             },
           },
           layers: [
             {
-              id: "esri-satellite",
+              id: "google-satellite",
               type: "raster",
-              source: "esri-satellite",
+              source: "google-satellite",
               minzoom: 0,
               maxzoom: 22,
             },
@@ -122,6 +125,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         },
         center: [lon, lat],
         zoom: 19,
+        maxZoom: 22,
       });
 
       map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -212,14 +216,13 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
         if (mode === "draw-zone") {
           useMapStore.getState().addDrawingPoint(point);
-        } else if (mode === "delete-zone") {
+        } else if (mode === "delete-zone" && map.getLayer("zones-fill")) {
           const features = map.queryRenderedFeatures(e.point, {
             layers: ["zones-fill"],
           });
           if (features.length > 0) {
             const zoneId = features[0].properties?.id;
             if (zoneId) {
-              // Token will be read from latest closure in the effect below
               document.dispatchEvent(
                 new CustomEvent("senpv:delete-zone", { detail: { zoneId } })
               );
@@ -231,7 +234,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               detail: { lat: e.lngLat.lat, lon: e.lngLat.lng },
             })
           );
-        } else if (mode === "delete-panel") {
+        } else if (mode === "delete-panel" && map.getLayer("panels-fill")) {
           const panelFeatures = map.queryRenderedFeatures(e.point, {
             layers: ["panels-fill"],
           });
@@ -246,7 +249,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               })
             );
           }
-        } else if (mode === "select-panel") {
+        } else if (mode === "select-panel" && map.getLayer("panels-fill")) {
           const panelFeatures = map.queryRenderedFeatures(e.point, {
             layers: ["panels-fill"],
           });
@@ -259,13 +262,15 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
             usePanelStore.getState().setSelectedPanelIndex(null);
           }
         } else if (mode === "navigate" || mode === "edit-zone") {
-          const features = map.queryRenderedFeatures(e.point, {
-            layers: ["zones-fill"],
-          });
-          if (features.length > 0) {
-            useMapStore.getState().setSelectedZone(features[0].properties?.id || null);
-          } else {
-            useMapStore.getState().setSelectedZone(null);
+          if (map.getLayer("zones-fill")) {
+            const features = map.queryRenderedFeatures(e.point, {
+              layers: ["zones-fill"],
+            });
+            if (features.length > 0) {
+              useMapStore.getState().setSelectedZone(features[0].properties?.id || null);
+            } else {
+              useMapStore.getState().setSelectedZone(null);
+            }
           }
         }
       });
@@ -332,14 +337,14 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
             }
           }
           map.getCanvas().style.cursor = "crosshair";
-        } else if (mode === "delete-zone") {
+        } else if (mode === "delete-zone" && map.getLayer("zones-fill")) {
           const features = map.queryRenderedFeatures(e.point, {
             layers: ["zones-fill"],
           });
           map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
         } else if (mode === "add-panel") {
           map.getCanvas().style.cursor = "crosshair";
-        } else if (mode === "delete-panel" || mode === "select-panel") {
+        } else if ((mode === "delete-panel" || mode === "select-panel") && map.getLayer("panels-fill")) {
           const panelFeatures = map.queryRenderedFeatures(e.point, {
             layers: ["panels-fill"],
           });
@@ -375,11 +380,17 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
     const handleFinishZone = (e: Event) => {
       const { polygon } = (e as CustomEvent).detail;
       if (token && polygon) {
-        addZone(projectId, { polygon }, token).then((zone) => {
-          clearDrawingPoints();
-          setSelectedZone(zone.id);
-          setMapMode("navigate");
-        });
+        addZone(projectId, { polygon }, token)
+          .then((zone) => {
+            clearDrawingPoints();
+            setSelectedZone(zone.id);
+            setMapMode("navigate");
+          })
+          .catch((err) => {
+            console.error("Failed to save zone:", err);
+            clearDrawingPoints();
+            setMapMode("navigate");
+          });
       }
     };
 
