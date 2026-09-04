@@ -200,6 +200,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       // Click handler
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.on("click", (e: any) => {
+        if (!map.isStyleLoaded()) return;
         const mode = useMapStore.getState().mapMode;
         const point: [number, number] = [e.lngLat.lng, e.lngLat.lat];
         console.log("[SenPV] map click — mode:", mode, "point:", point);
@@ -329,6 +330,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       // Mouse move handler
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.on("mousemove", (e: any) => {
+        if (!map.isStyleLoaded()) return;
         const mode = useMapStore.getState().mapMode;
         if (mode === "draw-zone") {
           map.getCanvas().style.cursor = "crosshair";
