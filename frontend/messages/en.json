@@ -189,9 +189,16 @@
     "deleteConfirm": "Delete this layout?",
     "numRows": "Number of rows",
     "numCols": "Number of columns",
-    "gridSize": "Grid size",
+    "gridSize": "Layout",
     "panels_label": "panels",
-    "placeRows": "Place rows"
+    "placeRows": "Place rows",
+    "totalPanels": "Number of panels",
+    "numRangées": "Rows",
+    "colsPerRangée": "Panels/line",
+    "orientation": "Orientation",
+    "horizontal": "Horizontal",
+    "vertical": "Vertical",
+    "gapRangée": "Row gap (m)"
   },
   "equipment": {
     "title": "Equipment catalog",

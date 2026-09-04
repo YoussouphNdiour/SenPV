@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { LayoutGrid, Plus, Minus } from "lucide-react";
+import { LayoutGrid, Plus, Minus, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,8 @@ import { useEquipmentStore } from "@/store/equipment";
 import type { PanelSpecs } from "@/types/equipment";
 import type { PanelLayoutGeoJSON, PanelPosition } from "@/types/panel-layout";
 
+type PanelOrientation = "horizontal" | "vertical";
+
 interface PanelRowPlacerProps {
   projectId: string;
   token: string;
@@ -29,88 +31,125 @@ interface PanelRowPlacerProps {
 }
 
 /**
- * Generate panel rectangles arranged in rows (top → bottom) inside a zone polygon.
- * All computation is done in screen pixels then projected back to lngLat.
+ * Generate panel rectangles arranged as rangées (tables) stacked top→bottom.
+ *
+ * Each rangée is a grid of (colsPerRangée × rowsPerRangée) panels.
+ * Rangées are separated by `gapBetweenRangées`.
+ *
+ * Orientation controls whether each panel is placed landscape (H) or portrait (V).
  */
-function generatePanelRows(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  map: any,
+function generateRangées(
   zonePolygon: number[][],
+  panelLengthM: number,
   panelWidthM: number,
-  panelHeightM: number,
-  cols: number,
-  rows: number,
+  orientation: PanelOrientation,
+  totalPanels: number,
+  numRangées: number,
+  colsPerRangée: number,
   spacingXM: number,
   spacingYM: number,
+  gapRangéeM: number,
   orientationDeg: number,
 ): PanelPosition[] {
-  // Compute zone centroid in lngLat
+  // Panel footprint depends on orientation
+  const panelW = orientation === "horizontal" ? panelLengthM : panelWidthM;
+  const panelH = orientation === "horizontal" ? panelWidthM : panelLengthM;
+
+  // Zone centroid
   const cLng = zonePolygon.reduce((s, c) => s + c[0], 0) / zonePolygon.length;
   const cLat = zonePolygon.reduce((s, c) => s + c[1], 0) / zonePolygon.length;
 
-  // Approximate meters-to-degrees at this latitude
+  // Meters → degrees at this latitude
   const mPerDegLat = 111320;
   const mPerDegLng = 111320 * Math.cos((cLat * Math.PI) / 180);
 
-  const panelW = panelWidthM / mPerDegLng;   // panel width in degrees lng
-  const panelH = panelHeightM / mPerDegLat;   // panel height in degrees lat
+  const pw = panelW / mPerDegLng;
+  const ph = panelH / mPerDegLat;
   const spX = spacingXM / mPerDegLng;
   const spY = spacingYM / mPerDegLat;
+  const gapR = gapRangéeM / mPerDegLat;
 
-  const cellW = panelW + spX;
-  const cellH = panelH + spY;
+  const cellW = pw + spX;
+  const cellH = ph + spY;
 
-  // Total grid dimensions
-  const gridW = cols * cellW - spX;
-  const gridH = rows * cellH - spY;
+  // Distribute panels across rangées
+  const panelsPerRangée = Math.ceil(totalPanels / numRangées);
+  const rangées: { cols: number; rows: number; count: number }[] = [];
+  let remaining = totalPanels;
 
-  // Start from top-left of grid, centered on zone centroid
-  const startLng = cLng - gridW / 2;
-  const startLat = cLat + gridH / 2; // top = higher lat
+  for (let r = 0; r < numRangées; r++) {
+    const count = Math.min(remaining, panelsPerRangée);
+    if (count <= 0) break;
+    const cols = Math.min(colsPerRangée, count);
+    const rows = Math.ceil(count / cols);
+    rangées.push({ cols, rows, count });
+    remaining -= count;
+  }
+
+  // Compute total height to center vertically
+  let totalH = 0;
+  for (let r = 0; r < rangées.length; r++) {
+    totalH += rangées[r].rows * cellH - spY;
+    if (r < rangées.length - 1) totalH += gapR;
+  }
+
+  // Total width = widest rangée
+  const maxCols = Math.max(...rangées.map((r) => r.cols));
+  const totalW = maxCols * cellW - spX;
+
+  // Starting position (top-left, centered on centroid)
+  const startLng = cLng - totalW / 2;
+  let currentLat = cLat + totalH / 2;
 
   const rotRad = (orientationDeg * Math.PI) / 180;
   const features: PanelPosition[] = [];
   let idx = 0;
+  let panelsPlaced = 0;
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      // Center of this panel (before rotation)
-      const pLng = startLng + c * cellW + panelW / 2;
-      const pLat = startLat - r * cellH - panelH / 2;
+  for (const rangée of rangées) {
+    for (let row = 0; row < rangée.rows; row++) {
+      for (let col = 0; col < rangée.cols; col++) {
+        if (panelsPlaced >= totalPanels) break;
 
-      // 4 corners relative to center
-      const hw = panelW / 2;
-      const hh = panelH / 2;
-      const corners: [number, number][] = [
-        [-hw, hh],
-        [hw, hh],
-        [hw, -hh],
-        [-hw, -hh],
-      ];
+        const pLng = startLng + col * cellW + pw / 2;
+        const pLat = currentLat - row * cellH - ph / 2;
 
-      // Rotate around centroid
-      const rotatedCorners = corners.map(([dx, dy]) => {
-        // Scale dx to make rotation work in lat/lng space
-        const dxScaled = dx * mPerDegLng;
-        const dyScaled = dy * mPerDegLat;
-        const rx = dxScaled * Math.cos(rotRad) - dyScaled * Math.sin(rotRad);
-        const ry = dxScaled * Math.sin(rotRad) + dyScaled * Math.cos(rotRad);
-        return [
-          pLng + rx / mPerDegLng,
-          pLat + ry / mPerDegLat,
-        ] as [number, number];
-      });
+        // 4 corners relative to center
+        const hw = pw / 2;
+        const hh = ph / 2;
+        const corners: [number, number][] = [
+          [-hw, hh],
+          [hw, hh],
+          [hw, -hh],
+          [-hw, -hh],
+        ];
 
-      // Close the ring
-      const ring = [...rotatedCorners, rotatedCorners[0]];
+        // Rotate around zone centroid
+        const rotatedCorners = corners.map(([dx, dy]) => {
+          const dxM = dx * mPerDegLng;
+          const dyM = dy * mPerDegLat;
+          const rx = dxM * Math.cos(rotRad) - dyM * Math.sin(rotRad);
+          const ry = dxM * Math.sin(rotRad) + dyM * Math.cos(rotRad);
+          return [
+            pLng + rx / mPerDegLng,
+            pLat + ry / mPerDegLat,
+          ] as [number, number];
+        });
 
-      features.push({
-        type: "Feature",
-        properties: { index: idx, rotation_deg: orientationDeg },
-        geometry: { type: "Polygon", coordinates: [ring] },
-      });
-      idx++;
+        const ring = [...rotatedCorners, rotatedCorners[0]];
+        features.push({
+          type: "Feature",
+          properties: { index: idx, rotation_deg: orientationDeg },
+          geometry: { type: "Polygon", coordinates: [ring] },
+        });
+        idx++;
+        panelsPlaced++;
+      }
+      if (panelsPlaced >= totalPanels) break;
     }
+
+    // Move down for next rangée
+    currentLat -= rangée.rows * cellH - spY + gapR;
   }
 
   return features;
@@ -128,47 +167,59 @@ export function PanelRowPlacer({
   const { layouts, createLayout, updateLayout } = usePanelStore();
   const { panels: equipmentPanels } = useEquipmentStore();
 
-  const [rows, setRows] = useState(3);
-  const [cols, setCols] = useState(5);
+  const [totalPanels, setTotalPanels] = useState(15);
+  const [numRangées, setNumRangées] = useState(3);
+  const [colsPerRangée, setColsPerRangée] = useState(5);
+  const [orientation, setOrientation] = useState<PanelOrientation>("horizontal");
   const [spacingX, setSpacingX] = useState(0.02);
-  const [spacingY, setSpacingY] = useState(0.05);
+  const [spacingY, setSpacingY] = useState(0.02);
+  const [gapRangée, setGapRangée] = useState(0.5);
   const [selectedPanelId, setSelectedPanelId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingCalp, setLoadingCalp] = useState(false);
 
   const selectedZone = zones.find((z) => z.id === selectedZoneId);
   const selectedPanel = equipmentPanels.find((p) => p.id === selectedPanelId);
   const panelSpecs = selectedPanel?.specs as PanelSpecs | undefined;
 
   // Auto-select first panel
-  if (!selectedPanelId && equipmentPanels.length > 0) {
-    setSelectedPanelId(equipmentPanels[0].id);
-  }
+  useEffect(() => {
+    if (!selectedPanelId && equipmentPanels.length > 0) {
+      setSelectedPanelId(equipmentPanels[0].id);
+    }
+  }, [equipmentPanels, selectedPanelId]);
 
-  const totalPanels = rows * cols;
   const totalKwc = panelSpecs ? (totalPanels * panelSpecs.pmax_w) / 1000 : 0;
 
+  // Computed layout preview
+  const panelsPerRangée = Math.ceil(totalPanels / numRangées);
+  const rowsPerRangée = Math.ceil(panelsPerRangée / colsPerRangée);
+
+  // --- Manual placement ---
   const handlePlace = async () => {
-    if (!selectedZone || !selectedPanel || !panelSpecs || !mapRef.current) return;
+    if (!selectedZone || !selectedPanel || !panelSpecs) return;
 
     const polygon = selectedZone.polygon?.coordinates?.[0];
     if (!polygon) return;
 
     setLoading(true);
     try {
-      const panelW = panelSpecs.dimensions_mm.length / 1000;
-      const panelH = panelSpecs.dimensions_mm.width / 1000;
-      const orientation = selectedZone.orientation_deg ?? 0;
+      const panelL = panelSpecs.dimensions_mm.length / 1000;
+      const panelW = panelSpecs.dimensions_mm.width / 1000;
+      const orientDeg = selectedZone.orientation_deg ?? 0;
 
-      const features = generatePanelRows(
-        mapRef.current,
+      const features = generateRangées(
         polygon as number[][],
+        panelL,
         panelW,
-        panelH,
-        cols,
-        rows,
+        orientation,
+        totalPanels,
+        numRangées,
+        colsPerRangée,
         spacingX,
         spacingY,
-        orientation,
+        gapRangée,
+        orientDeg,
       );
 
       const layoutGeoJSON: PanelLayoutGeoJSON = {
@@ -176,7 +227,6 @@ export function PanelRowPlacer({
         features,
       };
 
-      // Check if layout already exists for this zone
       const existingLayout = layouts.find(
         (l) => l.roof_zone_id === selectedZone.id
       );
@@ -187,7 +237,6 @@ export function PanelRowPlacer({
           num_panels: features.length,
         } as Partial<typeof existingLayout>, token);
       } else {
-        // Create layout first (triggers backend calpinage), then override with our layout
         const newLayout = await createLayout(
           projectId,
           {
@@ -198,7 +247,6 @@ export function PanelRowPlacer({
           },
           token
         );
-        // Override with our manual row placement
         await updateLayout(projectId, newLayout.id, {
           layout_geojson: layoutGeoJSON,
           num_panels: features.length,
@@ -213,9 +261,43 @@ export function PanelRowPlacer({
     }
   };
 
+  // --- Auto calpinage ---
+  const handleCalpinage = async () => {
+    if (!selectedZone || !selectedPanel) return;
+
+    setLoadingCalp(true);
+    try {
+      const existingLayout = layouts.find(
+        (l) => l.roof_zone_id === selectedZone.id
+      );
+
+      if (existingLayout) {
+        // Delete and recreate to re-trigger calpinage
+        await usePanelStore.getState().deleteLayout(projectId, existingLayout.id, token);
+      }
+
+      await createLayout(
+        projectId,
+        {
+          roof_zone_id: selectedZone.id,
+          panel_model_id: selectedPanel.id,
+          spacing_x: spacingX,
+          spacing_y: spacingY,
+        },
+        token
+      );
+
+      onLayoutChanged();
+    } catch (err) {
+      console.error("Calpinage failed:", err);
+    } finally {
+      setLoadingCalp(false);
+    }
+  };
+
   if (!selectedZoneId || !selectedZone) {
     return (
-      <div className="p-4 text-sm text-muted-foreground text-center">
+      <div className="text-sm text-muted-foreground text-center py-4">
         {tMap("selectZoneFirst")}
       </div>
     );
@@ -227,7 +309,7 @@ export function PanelRowPlacer({
       <div className="space-y-2">
         <Label>{t("panelModel")}</Label>
         <Select value={selectedPanelId} onValueChange={(v) => v && setSelectedPanelId(v)}>
-          <SelectTrigger>
+          <SelectTrigger className="h-9">
             <SelectValue placeholder={t("selectPanel")} />
           </SelectTrigger>
           <SelectContent>
@@ -240,47 +322,83 @@ export function PanelRowPlacer({
         </Select>
       </div>
 
-      {/* Rows and Columns */}
+      {/* Orientation toggle */}
+      <div className="space-y-2">
+        <Label>{t("orientation")}</Label>
+        <div className="flex gap-1">
+          <Button
+            variant={orientation === "horizontal" ? "default" : "outline"}
+            size="sm"
+            className="flex-1 h-8 text-xs"
+            onClick={() => setOrientation("horizontal")}
+          >
+            {t("horizontal")}
+          </Button>
+          <Button
+            variant={orientation === "vertical" ? "default" : "outline"}
+            size="sm"
+            className="flex-1 h-8 text-xs"
+            onClick={() => setOrientation("vertical")}
+          >
+            {t("vertical")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Total panels */}
+      <div className="space-y-2">
+        <Label>{t("totalPanels")}</Label>
+        <Input
+          type="number"
+          min={1}
+          max={500}
+          value={totalPanels}
+          onChange={(e) => setTotalPanels(Math.max(1, Number(e.target.value)))}
+          className="h-9"
+        />
+      </div>
+
+      {/* Number of rangées + cols per rangée */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label>{t("numRows")}</Label>
-          <div className="flex items-center gap-2">
+          <Label className="text-xs">{t("numRangées")}</Label>
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
-              onClick={() => setRows(Math.max(1, rows - 1))}
+              className="h-7 w-7"
+              onClick={() => setNumRangées(Math.max(1, numRangées - 1))}
             >
               <Minus className="size-3" />
             </Button>
-            <span className="w-8 text-center font-medium">{rows}</span>
+            <span className="w-7 text-center text-sm font-medium">{numRangées}</span>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
-              onClick={() => setRows(Math.min(20, rows + 1))}
+              className="h-7 w-7"
+              onClick={() => setNumRangées(Math.min(20, numRangées + 1))}
             >
               <Plus className="size-3" />
             </Button>
           </div>
         </div>
         <div className="space-y-2">
-          <Label>{t("numCols")}</Label>
-          <div className="flex items-center gap-2">
+          <Label className="text-xs">{t("colsPerRangée")}</Label>
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
-              onClick={() => setCols(Math.max(1, cols - 1))}
+              className="h-7 w-7"
+              onClick={() => setColsPerRangée(Math.max(1, colsPerRangée - 1))}
             >
               <Minus className="size-3" />
             </Button>
-            <span className="w-8 text-center font-medium">{cols}</span>
+            <span className="w-7 text-center text-sm font-medium">{colsPerRangée}</span>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
-              onClick={() => setCols(Math.min(30, cols + 1))}
+              className="h-7 w-7"
+              onClick={() => setColsPerRangée(Math.min(30, colsPerRangée + 1))}
             >
               <Plus className="size-3" />
             </Button>
@@ -289,9 +407,9 @@ export function PanelRowPlacer({
       </div>
 
       {/* Spacing */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label>{t("spacingX")} (m)</Label>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">{t("spacingX")}</Label>
           <Input
             type="number"
             min={0}
@@ -299,10 +417,11 @@ export function PanelRowPlacer({
             step={0.01}
             value={spacingX}
             onChange={(e) => setSpacingX(Number(e.target.value))}
+            className="h-8 text-xs"
           />
         </div>
-        <div className="space-y-2">
-          <Label>{t("spacingY")} (m)</Label>
+        <div className="space-y-1">
+          <Label className="text-xs">{t("spacingY")}</Label>
           <Input
             type="number"
             min={0}
@@ -310,39 +429,73 @@ export function PanelRowPlacer({
             step={0.01}
             value={spacingY}
             onChange={(e) => setSpacingY(Number(e.target.value))}
+            className="h-8 text-xs"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t("gapRangée")}</Label>
+          <Input
+            type="number"
+            min={0}
+            max={5}
+            step={0.1}
+            value={gapRangée}
+            onChange={(e) => setGapRangée(Number(e.target.value))}
+            className="h-8 text-xs"
           />
         </div>
       </div>
 
-      {/* Preview info */}
+      {/* Preview summary */}
       {panelSpecs && (
-        <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{t("gridSize")}</span>
-            <span className="font-medium">{rows} x {cols} = {totalPanels} {t("panels_label")}</span>
+        <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-xs">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">{t("totalPanels")}</span>
+            <span className="font-medium">{totalPanels}</span>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">{t("gridSize")}</span>
+            <span className="font-medium">
+              {numRangées} × ({colsPerRangée}×{rowsPerRangée})
+            </span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-muted-foreground">{t("power")}</span>
             <span className="font-medium text-primary">{totalKwc.toFixed(1)} kWc</span>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between">
             <span className="text-muted-foreground">{t("dimensions")}</span>
-            <span className="text-xs">
-              {panelSpecs.dimensions_mm.length} x {panelSpecs.dimensions_mm.width} mm
+            <span>
+              {orientation === "horizontal"
+                ? `${panelSpecs.dimensions_mm.length}×${panelSpecs.dimensions_mm.width}`
+                : `${panelSpecs.dimensions_mm.width}×${panelSpecs.dimensions_mm.length}`
+              } mm
             </span>
           </div>
         </div>
       )}
 
-      {/* Place button */}
-      <Button
-        className="w-full"
-        onClick={handlePlace}
-        disabled={loading || !selectedPanelId || !selectedZone}
-      >
-        <LayoutGrid className="size-4 mr-2" />
-        {loading ? "..." : t("placeRows")}
-      </Button>
+      {/* Action buttons */}
+      <div className="space-y-2">
+        <Button
+          className="w-full"
+          onClick={handlePlace}
+          disabled={loading || loadingCalp || !selectedPanelId || !selectedZone}
+        >
+          <LayoutGrid className="size-4 mr-2" />
+          {loading ? "..." : t("placeRows")}
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleCalpinage}
+          disabled={loading || loadingCalp || !selectedPanelId || !selectedZone}
+        >
+          <Zap className="size-4 mr-2" />
+          {loadingCalp ? "..." : t("runCalpinage")}
+        </Button>
+      </div>
     </div>
   );
 }

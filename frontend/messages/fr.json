@@ -189,9 +189,16 @@
     "deleteConfirm": "Supprimer cette disposition ?",
     "numRows": "Nombre de rangées",
     "numCols": "Nombre de colonnes",
-    "gridSize": "Taille de la grille",
+    "gridSize": "Disposition",
     "panels_label": "panneaux",
-    "placeRows": "Placer les rangées"
+    "placeRows": "Placer les rangées",
+    "totalPanels": "Nombre de panneaux",
+    "numRangées": "Rangées",
+    "colsPerRangée": "Panneaux/ligne",
+    "orientation": "Orientation",
+    "horizontal": "Horizontal",
+    "vertical": "Vertical",
+    "gapRangée": "Écart rangées (m)"
   },
   "equipment": {
     "title": "Catalogue équipements",
