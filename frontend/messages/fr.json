@@ -162,7 +162,9 @@
     "roofType": "Type de toit",
     "editZone": "Modifier la zone",
     "deleteZone": "Supprimer la zone",
-    "zone": "Zone"
+    "zone": "Zone",
+    "selectZoneFirst": "Sélectionnez une zone de toit d'abord",
+    "panelRows": "Rangées de panneaux"
   },
   "panels": {
     "calpinage": "Calpinage automatique",
@@ -184,7 +186,12 @@
     "unknownPanel": "Panneau inconnu",
     "strings": "strings",
     "perString": "par string",
-    "deleteConfirm": "Supprimer cette disposition ?"
+    "deleteConfirm": "Supprimer cette disposition ?",
+    "numRows": "Nombre de rangées",
+    "numCols": "Nombre de colonnes",
+    "gridSize": "Taille de la grille",
+    "panels_label": "panneaux",
+    "placeRows": "Placer les rangées"
   },
   "equipment": {
     "title": "Catalogue équipements",

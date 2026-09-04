@@ -4,6 +4,9 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 
+import { LayoutGrid } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { useMapStore, type MapMode } from "@/store/map";
 import { usePanelStore } from "@/store/panels";
 import { useEquipmentStore } from "@/store/equipment";
@@ -11,17 +14,17 @@ import type { GeoJSONPolygon } from "@/types/roof-zone";
 import { GeoSearch } from "./GeoSearch";
 import { DrawingTools } from "./DrawingTools";
 import { ZonePropertiesPanel } from "./ZonePropertiesPanel";
-import { PanelGrid } from "@/components/panels/PanelGrid";
 import { PanelToolbar } from "@/components/panels/PanelToolbar";
 import { PanelBadge } from "@/components/panels/PanelBadge";
+import { PanelRowPlacer } from "./PanelRowPlacer";
 
 const ZONE_COLORS = [
-  "rgba(59, 130, 246, 0.3)",
-  "rgba(16, 185, 129, 0.3)",
-  "rgba(245, 158, 11, 0.3)",
-  "rgba(239, 68, 68, 0.3)",
-  "rgba(139, 92, 246, 0.3)",
-  "rgba(236, 72, 153, 0.3)",
+  "rgba(59, 130, 246, 0.35)",
+  "rgba(16, 185, 129, 0.35)",
+  "rgba(245, 158, 11, 0.35)",
+  "rgba(239, 68, 68, 0.35)",
+  "rgba(139, 92, 246, 0.35)",
+  "rgba(236, 72, 153, 0.35)",
 ];
 const ZONE_STROKE_COLORS = [
   "rgb(59, 130, 246)",
@@ -31,6 +34,9 @@ const ZONE_STROKE_COLORS = [
   "rgb(139, 92, 246)",
   "rgb(236, 72, 153)",
 ];
+
+const PANEL_COLOR = "rgba(30, 58, 95, 0.85)";
+const PANEL_STROKE = "rgba(255, 255, 255, 0.6)";
 
 interface MapViewProps {
   projectId: string;
@@ -44,10 +50,12 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
   const token = (session as { accessToken?: string } | null)?.accessToken;
 
   const mapContainer = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
-  const previewLineRef = useRef<[number, number] | null>(null);
+  const previewPointRef = useRef<[number, number] | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [showRowPlacer, setShowRowPlacer] = useState(false);
 
   const {
     mapMode,
@@ -55,7 +63,6 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
     drawingPoints,
     selectedZoneId,
     setSelectedZone,
-    addDrawingPoint,
     clearDrawingPoints,
     fetchZones,
     addZone,
@@ -65,16 +72,14 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
   const {
     layouts,
-    selectedLayoutId,
     fetchLayouts,
     addPanel,
     removePanel,
-    setSelectedPanelIndex,
   } = usePanelStore();
 
   const { panels: equipmentPanels, fetchPanels } = useEquipmentStore();
 
-  // Fetch zones, layouts, and equipment on mount
+  // Fetch data on mount
   useEffect(() => {
     if (token && projectId) {
       fetchZones(projectId, token).catch(() => {});
@@ -83,7 +88,137 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
     }
   }, [token, projectId, fetchZones, fetchLayouts, fetchPanels]);
 
-  // Initialize map with dynamic import
+  // ─── Canvas overlay drawing function ───────────────────────────────
+  const drawOverlay = useCallback(() => {
+    const map = mapRef.current;
+    const canvas = canvasRef.current;
+    if (!map || !canvas) return;
+
+    const container = canvas.parentElement;
+    if (!container) return;
+
+    // Match canvas size to container
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    // Helper: lngLat → pixel
+    const toPixel = (lngLat: [number, number]): [number, number] => {
+      const p = map.project(lngLat);
+      return [p.x, p.y];
+    };
+
+    // ─── Draw existing zones ──────────────────────────────
+    const currentZones = useMapStore.getState().zones;
+    currentZones.forEach((zone, i) => {
+      if (!zone.polygon?.coordinates?.[0]) return;
+      const ring = zone.polygon.coordinates[0];
+      if (ring.length < 3) return;
+
+      const pixels = ring.map((c) => toPixel(c as [number, number]));
+
+      // Fill
+      ctx.beginPath();
+      ctx.moveTo(pixels[0][0], pixels[0][1]);
+      for (let j = 1; j < pixels.length; j++) {
+        ctx.lineTo(pixels[j][0], pixels[j][1]);
+      }
+      ctx.closePath();
+      ctx.fillStyle = ZONE_COLORS[i % ZONE_COLORS.length];
+      ctx.fill();
+
+      // Stroke
+      ctx.strokeStyle = ZONE_STROKE_COLORS[i % ZONE_STROKE_COLORS.length];
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label
+      if (pixels.length > 2) {
+        const cx = pixels.reduce((s, p) => s + p[0], 0) / pixels.length;
+        const cy = pixels.reduce((s, p) => s + p[1], 0) / pixels.length;
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`Zone ${i + 1}`, cx, cy);
+      }
+    });
+
+    // ─── Draw panel layouts ───────────────────────────────
+    const currentLayouts = usePanelStore.getState().layouts;
+    for (const layout of currentLayouts) {
+      if (!layout.layout_geojson?.features) continue;
+      for (const feature of layout.layout_geojson.features) {
+        const coords = feature.geometry?.coordinates?.[0];
+        if (!coords || coords.length < 3) continue;
+
+        const pixels = coords.map((c: number[]) => toPixel(c as [number, number]));
+
+        ctx.beginPath();
+        ctx.moveTo(pixels[0][0], pixels[0][1]);
+        for (let j = 1; j < pixels.length; j++) {
+          ctx.lineTo(pixels[j][0], pixels[j][1]);
+        }
+        ctx.closePath();
+        ctx.fillStyle = PANEL_COLOR;
+        ctx.fill();
+        ctx.strokeStyle = PANEL_STROKE;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+
+    // ─── Draw current drawing (preview) ───────────────────
+    const pts = useMapStore.getState().drawingPoints;
+    const preview = previewPointRef.current;
+
+    if (pts.length > 0) {
+      const allPts = [...pts];
+      if (preview) allPts.push(preview);
+
+      const pixels = allPts.map(toPixel);
+
+      // Line or polygon preview
+      ctx.beginPath();
+      ctx.moveTo(pixels[0][0], pixels[0][1]);
+      for (let j = 1; j < pixels.length; j++) {
+        ctx.lineTo(pixels[j][0], pixels[j][1]);
+      }
+      if (pts.length >= 3) {
+        ctx.closePath();
+        ctx.fillStyle = "rgba(59, 130, 246, 0.15)";
+        ctx.fill();
+      }
+      ctx.strokeStyle = "rgb(59, 130, 246)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw points
+      for (let j = 0; j < pts.length; j++) {
+        const px = toPixel(pts[j]);
+        ctx.beginPath();
+        ctx.arc(px[0], px[1], 6, 0, Math.PI * 2);
+        ctx.fillStyle = "rgb(59, 130, 246)";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+  }, []);
+
+  // ─── Initialize map ─────────────────────────────────────────────────
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
 
@@ -96,7 +231,6 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       if (cancelled || !mapContainer.current) return;
 
       const ML = maplibregl.default || maplibregl;
-      const emptyFC = { type: "FeatureCollection" as const, features: [] };
 
       const map = new ML.Map({
         container: mapContainer.current,
@@ -142,124 +276,37 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         "bottom-right"
       );
 
+      // Redraw overlay on every map movement
+      map.on("move", drawOverlay);
+      map.on("zoom", drawOverlay);
+      map.on("resize", drawOverlay);
+
       map.on("load", () => {
-        // Add vector sources
-        map.addSource("zones", { type: "geojson", data: emptyFC });
-        map.addSource("drawing", { type: "geojson", data: emptyFC });
-        map.addSource("drawing-points", { type: "geojson", data: emptyFC });
-
-        // Zone layers
-        map.addLayer({
-          id: "zones-fill",
-          type: "fill",
-          source: "zones",
-          paint: { "fill-color": ["get", "fillColor"], "fill-opacity": 0.3 },
-        });
-        map.addLayer({
-          id: "zones-stroke",
-          type: "line",
-          source: "zones",
-          paint: { "line-color": ["get", "strokeColor"], "line-width": 2 },
-        });
-
-        // Drawing preview layers
-        map.addLayer({
-          id: "drawing-fill",
-          type: "fill",
-          source: "drawing",
-          paint: { "fill-color": "rgba(59,130,246,0.2)", "fill-opacity": 1 },
-        });
-        map.addLayer({
-          id: "drawing-line",
-          type: "line",
-          source: "drawing",
-          paint: {
-            "line-color": "rgb(59,130,246)",
-            "line-width": 2,
-            "line-dasharray": [2, 2],
-          },
-        });
-
-        // Drawing points layer
-        map.addLayer({
-          id: "drawing-points",
-          type: "circle",
-          source: "drawing-points",
-          paint: {
-            "circle-radius": 6,
-            "circle-color": "rgb(59,130,246)",
-            "circle-stroke-color": "#fff",
-            "circle-stroke-width": 2,
-          },
-        });
-
-        console.log("[SenPV] map loaded, layers added");
         setMapReady(true);
+        drawOverlay();
       });
 
       // Click handler
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.on("click", (e: any) => {
-        if (!map.isStyleLoaded()) return;
         const mode = useMapStore.getState().mapMode;
         const point: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-        console.log("[SenPV] map click — mode:", mode, "point:", point);
 
         if (mode === "draw-zone") {
           useMapStore.getState().addDrawingPoint(point);
-          const pts = useMapStore.getState().drawingPoints;
-          console.log("[SenPV] drawing points:", pts);
-
-          // Update map sources directly (bypass React cycle)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ptsSrc = map.getSource("drawing-points") as any;
-          if (ptsSrc) {
-            ptsSrc.setData({
-              type: "FeatureCollection",
-              features: pts.map((p: [number, number]) => ({
-                type: "Feature",
-                properties: {},
-                geometry: { type: "Point", coordinates: p },
-              })),
-            });
-          }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const drawSrc = map.getSource("drawing") as any;
-          if (drawSrc && pts.length >= 2) {
-            drawSrc.setData({
-              type: "FeatureCollection",
-              features: [{
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "Polygon",
-                  coordinates: [[...pts, pts[0]]],
-                },
-              }],
-            });
-          } else if (drawSrc && pts.length === 1) {
-            drawSrc.setData({
-              type: "FeatureCollection",
-              features: [{
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: [pts[0], point],
-                },
-              }],
-            });
-          }
-        } else if (mode === "delete-zone" && map.getLayer("zones-fill")) {
-          const features = map.queryRenderedFeatures(e.point, {
-            layers: ["zones-fill"],
-          });
-          if (features.length > 0) {
-            const zoneId = features[0].properties?.id;
-            if (zoneId) {
-              document.dispatchEvent(
-                new CustomEvent("senpv:delete-zone", { detail: { zoneId } })
-              );
+          drawOverlay();
+        } else if (mode === "delete-zone") {
+          // Find which zone was clicked by checking point-in-polygon
+          const currentZones = useMapStore.getState().zones;
+          for (let i = currentZones.length - 1; i >= 0; i--) {
+            const zone = currentZones[i];
+            if (zone.polygon?.coordinates?.[0]) {
+              if (pointInPolygon(point, zone.polygon.coordinates[0] as [number, number][])) {
+                document.dispatchEvent(
+                  new CustomEvent("senpv:delete-zone", { detail: { zoneId: zone.id } })
+                );
+                break;
+              }
             }
           }
         } else if (mode === "add-panel") {
@@ -268,48 +315,26 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               detail: { lat: e.lngLat.lat, lon: e.lngLat.lng },
             })
           );
-        } else if (mode === "delete-panel" && map.getLayer("panels-fill")) {
-          const panelFeatures = map.queryRenderedFeatures(e.point, {
-            layers: ["panels-fill"],
-          });
-          if (panelFeatures.length > 0) {
-            const props = panelFeatures[0].properties;
-            document.dispatchEvent(
-              new CustomEvent("senpv:delete-panel", {
-                detail: {
-                  layoutId: props?.layoutId,
-                  panelIndex: props?.index,
-                },
-              })
-            );
-          }
-        } else if (mode === "select-panel" && map.getLayer("panels-fill")) {
-          const panelFeatures = map.queryRenderedFeatures(e.point, {
-            layers: ["panels-fill"],
-          });
-          if (panelFeatures.length > 0) {
-            const props = panelFeatures[0].properties;
-            usePanelStore
-              .getState()
-              .setSelectedPanelIndex(props?.index ?? null);
-          } else {
-            usePanelStore.getState().setSelectedPanelIndex(null);
-          }
         } else if (mode === "navigate" || mode === "edit-zone") {
-          if (map.getLayer("zones-fill")) {
-            const features = map.queryRenderedFeatures(e.point, {
-              layers: ["zones-fill"],
-            });
-            if (features.length > 0) {
-              useMapStore.getState().setSelectedZone(features[0].properties?.id || null);
-            } else {
-              useMapStore.getState().setSelectedZone(null);
+          const currentZones = useMapStore.getState().zones;
+          let found = false;
+          for (let i = currentZones.length - 1; i >= 0; i--) {
+            const zone = currentZones[i];
+            if (zone.polygon?.coordinates?.[0]) {
+              if (pointInPolygon(point, zone.polygon.coordinates[0] as [number, number][])) {
+                useMapStore.getState().setSelectedZone(zone.id);
+                found = true;
+                break;
+              }
             }
+          }
+          if (!found) {
+            useMapStore.getState().setSelectedZone(null);
           }
         }
       });
 
-      // Double-click handler
+      // Double-click to finish zone
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.on("dblclick", (e: any) => {
         const mode = useMapStore.getState().mapMode;
@@ -327,66 +352,21 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         }
       });
 
-      // Mouse move handler
+      // Mouse move for drawing preview
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.on("mousemove", (e: any) => {
-        if (!map.isStyleLoaded()) return;
         const mode = useMapStore.getState().mapMode;
         if (mode === "draw-zone") {
           map.getCanvas().style.cursor = "crosshair";
-          previewLineRef.current = [e.lngLat.lng, e.lngLat.lat];
-          const points = useMapStore.getState().drawingPoints;
-          if (points.length > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const drawingSource: any = map.getSource("drawing");
-            if (!drawingSource) return;
-
-            const coords = [...points, previewLineRef.current];
-            if (points.length >= 2) {
-              drawingSource.setData({
-                type: "FeatureCollection",
-                features: [
-                  {
-                    type: "Feature",
-                    properties: {},
-                    geometry: {
-                      type: "Polygon",
-                      coordinates: [[...coords, coords[0]]],
-                    },
-                  },
-                ],
-              });
-            } else {
-              drawingSource.setData({
-                type: "FeatureCollection",
-                features: [
-                  {
-                    type: "Feature",
-                    properties: {},
-                    geometry: {
-                      type: "LineString",
-                      coordinates: coords,
-                    },
-                  },
-                ],
-              });
-            }
-          }
-        } else if (mode === "delete-zone" && map.getLayer("zones-fill")) {
-          const features = map.queryRenderedFeatures(e.point, {
-            layers: ["zones-fill"],
-          });
-          map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
+          previewPointRef.current = [e.lngLat.lng, e.lngLat.lat];
+          drawOverlay();
+        } else if (mode === "delete-zone" || mode === "delete-panel") {
+          map.getCanvas().style.cursor = "pointer";
         } else if (mode === "add-panel") {
           map.getCanvas().style.cursor = "crosshair";
-        } else if ((mode === "delete-panel" || mode === "select-panel") && map.getLayer("panels-fill")) {
-          const panelFeatures = map.queryRenderedFeatures(e.point, {
-            layers: ["panels-fill"],
-          });
-          map.getCanvas().style.cursor =
-            panelFeatures.length > 0 ? "pointer" : "";
         } else {
           map.getCanvas().style.cursor = "";
+          previewPointRef.current = null;
         }
       });
 
@@ -401,14 +381,14 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       }
       setMapReady(false);
     };
-  }, [lat, lon]);
+  }, [lat, lon, drawOverlay]);
 
-  // Handle custom events for zone operations (to access current token)
+  // Handle custom events (need access to current token)
   useEffect(() => {
     const handleDeleteZone = (e: Event) => {
       const { zoneId } = (e as CustomEvent).detail;
       if (token && zoneId) {
-        removeZone(projectId, zoneId, token);
+        removeZone(projectId, zoneId, token).then(() => drawOverlay());
       }
     };
 
@@ -420,11 +400,14 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
             clearDrawingPoints();
             setSelectedZone(zone.id);
             setMapMode("navigate");
+            previewPointRef.current = null;
+            drawOverlay();
           })
           .catch((err) => {
             console.error("Failed to save zone:", err);
             clearDrawingPoints();
             setMapMode("navigate");
+            drawOverlay();
           });
       }
     };
@@ -433,14 +416,14 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       const { lat: pLat, lon: pLon } = (e as CustomEvent).detail;
       const layoutId = usePanelStore.getState().selectedLayoutId;
       if (token && layoutId) {
-        addPanel(projectId, layoutId, { lat: pLat, lon: pLon }, token);
+        addPanel(projectId, layoutId, { lat: pLat, lon: pLon }, token).then(() => drawOverlay());
       }
     };
 
     const handleDeletePanel = (e: Event) => {
       const { layoutId, panelIndex } = (e as CustomEvent).detail;
       if (token && layoutId != null && panelIndex != null) {
-        removePanel(projectId, layoutId, panelIndex, token);
+        removePanel(projectId, layoutId, panelIndex, token).then(() => drawOverlay());
       }
     };
 
@@ -455,110 +438,31 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       document.removeEventListener("senpv:delete-panel", handleDeletePanel);
     };
   }, [
-    token,
-    projectId,
-    addZone,
-    removeZone,
-    addPanel,
-    removePanel,
-    clearDrawingPoints,
-    setSelectedZone,
-    setMapMode,
+    token, projectId, addZone, removeZone, addPanel, removePanel,
+    clearDrawingPoints, setSelectedZone, setMapMode, drawOverlay,
   ]);
 
-  // Update zones on map
+  // Redraw when zones, layouts, or drawing changes
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    const source = map.getSource("zones");
-    if (!source) return;
-
-    const features = zones
-      .filter((z) => z.polygon)
-      .map((z: { id: string; polygon: GeoJSONPolygon | null }, i: number) => ({
-        type: "Feature" as const,
-        properties: {
-          id: z.id,
-          fillColor: ZONE_COLORS[i % ZONE_COLORS.length],
-          strokeColor: ZONE_STROKE_COLORS[i % ZONE_STROKE_COLORS.length],
-        },
-        geometry: z.polygon!,
-      }));
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (source as any).setData({ type: "FeatureCollection", features });
-  }, [zones, mapReady]);
-
-  // Update drawing preview
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-
-    const drawingSource = map.getSource("drawing");
-    const pointsSource = map.getSource("drawing-points");
-    if (!drawingSource || !pointsSource) {
-      console.log("[SenPV] drawing sources missing — drawing:", !!drawingSource, "points:", !!pointsSource);
-      return;
-    }
-
-    console.log("[SenPV] updating drawing preview — points:", drawingPoints.length);
-
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (pointsSource as any).setData({
-      type: "FeatureCollection",
-      features: drawingPoints.map((p: [number, number]) => ({
-        type: "Feature" as const,
-        properties: {},
-        geometry: { type: "Point" as const, coordinates: p },
-      })),
-    });
-
-    if (drawingPoints.length >= 2) {
-      (drawingSource as any).setData({
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "Polygon",
-              coordinates: [[...drawingPoints, drawingPoints[0]]],
-            },
-          },
-        ],
-      });
-    } else if (drawingPoints.length === 1 && previewLineRef.current) {
-      (drawingSource as any).setData({
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: [drawingPoints[0], previewLineRef.current],
-            },
-          },
-        ],
-      });
-    } else {
-      (drawingSource as any).setData({ type: "FeatureCollection", features: [] });
-    }
-  }, [drawingPoints, mapReady]);
+    drawOverlay();
+  }, [zones, drawingPoints, layouts, mapReady, drawOverlay]);
 
   // Disable double-click zoom in draw mode
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-
     if (mapMode === "draw-zone") {
       map.doubleClickZoom.disable();
     } else {
       map.doubleClickZoom.enable();
     }
   }, [mapMode]);
+
+  const handleLayoutChanged = useCallback(() => {
+    if (token && projectId) {
+      usePanelStore.getState().fetchLayouts(projectId, token).then(() => drawOverlay());
+    }
+  }, [token, projectId, drawOverlay]);
 
   const handleSearchResult = useCallback((lng: number, latVal: number) => {
     const map = mapRef.current;
@@ -580,6 +484,11 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
   return (
     <div className="relative w-full h-[calc(100vh-280px)] min-h-[500px] rounded-lg overflow-hidden border">
       <div ref={mapContainer} className="w-full h-full" />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ zIndex: 1 }}
+      />
 
       <GeoSearch onSelect={handleSearchResult} />
       <DrawingTools />
@@ -587,11 +496,35 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         <PanelToolbar projectId={projectId} token={token} />
       )}
 
-      <PanelGrid mapRef={mapRef} mapReady={mapReady} />
       <PanelBadge panels={equipmentPanels} />
 
+      {/* Panel Row Placer toggle button */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+        <Button
+          variant={showRowPlacer ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowRowPlacer(!showRowPlacer)}
+          className="bg-background/90 backdrop-blur shadow"
+        >
+          <LayoutGrid className="size-4 mr-2" />
+          {t("panelRows")}
+        </Button>
+      </div>
+
+      {/* Panel Row Placer panel */}
+      {showRowPlacer && token && (
+        <div className="absolute top-14 right-4 z-10 w-72 bg-background/95 backdrop-blur rounded-lg shadow-lg border p-4 max-h-[calc(100%-80px)] overflow-y-auto">
+          <PanelRowPlacer
+            projectId={projectId}
+            token={token}
+            mapRef={mapRef}
+            onLayoutChanged={handleLayoutChanged}
+          />
+        </div>
+      )}
+
       {hint && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur text-sm px-4 py-2 rounded-lg shadow border">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur text-sm px-4 py-2 rounded-lg shadow border z-10">
           {hint}
         </div>
       )}
@@ -599,4 +532,18 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       {selectedZoneId && <ZonePropertiesPanel projectId={projectId} />}
     </div>
   );
+}
+
+// Point-in-polygon test (ray casting)
+function pointInPolygon(point: [number, number], polygon: [number, number][]): boolean {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
 }
