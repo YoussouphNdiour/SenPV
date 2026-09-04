@@ -189,22 +189,30 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
           },
         });
 
-        // Drawing points
+        // Drawing points — TEST: hardcoded point at map center + large red circles
         map.addSource("drawing-points", {
           type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
+          data: {
+            type: "FeatureCollection",
+            features: [{
+              type: "Feature",
+              properties: {},
+              geometry: { type: "Point", coordinates: [lon, lat] },
+            }],
+          },
         });
         map.addLayer({
           id: "drawing-points",
           type: "circle",
           source: "drawing-points",
           paint: {
-            "circle-radius": 5,
-            "circle-color": "rgb(59, 130, 246)",
-            "circle-stroke-color": "#fff",
-            "circle-stroke-width": 2,
+            "circle-radius": 20,
+            "circle-color": "#ff0000",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 4,
           },
         });
+        console.log("[SenPV] TEST: added red circle at", lon, lat);
 
         setMapReady(true);
       });
