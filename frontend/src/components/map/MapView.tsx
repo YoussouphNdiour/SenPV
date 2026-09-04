@@ -95,6 +95,8 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
       if (cancelled || !mapContainer.current) return;
 
+      const emptyGeoJSON = { type: "FeatureCollection" as const, features: [] as any[] };
+
       const map = new maplibregl.Map({
         container: mapContainer.current,
         style: {
@@ -112,6 +114,9 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               attribution: "&copy; Google",
               maxzoom: 22,
             },
+            zones: { type: "geojson", data: emptyGeoJSON },
+            drawing: { type: "geojson", data: emptyGeoJSON },
+            "drawing-points": { type: "geojson", data: emptyGeoJSON },
           },
           layers: [
             {
@@ -120,6 +125,54 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               source: "google-satellite",
               minzoom: 0,
               maxzoom: 22,
+            },
+            {
+              id: "zones-fill",
+              type: "fill",
+              source: "zones",
+              paint: {
+                "fill-color": ["get", "fillColor"],
+                "fill-opacity": 0.3,
+              },
+            },
+            {
+              id: "zones-stroke",
+              type: "line",
+              source: "zones",
+              paint: {
+                "line-color": ["get", "strokeColor"],
+                "line-width": 2,
+              },
+            },
+            {
+              id: "drawing-fill",
+              type: "fill",
+              source: "drawing",
+              paint: {
+                "fill-color": "rgba(59, 130, 246, 0.2)",
+                "fill-opacity": 1,
+              },
+            },
+            {
+              id: "drawing-line",
+              type: "line",
+              source: "drawing",
+              paint: {
+                "line-color": "rgb(59, 130, 246)",
+                "line-width": 2,
+                "line-dasharray": [2, 2],
+              },
+            },
+            {
+              id: "drawing-points",
+              type: "circle",
+              source: "drawing-points",
+              paint: {
+                "circle-radius": 6,
+                "circle-color": "rgb(59, 130, 246)",
+                "circle-stroke-color": "#fff",
+                "circle-stroke-width": 2,
+              },
             },
           ],
         },
@@ -140,86 +193,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       );
 
       map.on("load", () => {
-        // Source for existing zones
-        map.addSource("zones", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-          id: "zones-fill",
-          type: "fill",
-          source: "zones",
-          paint: {
-            "fill-color": ["get", "fillColor"],
-            "fill-opacity": 0.3,
-          },
-        });
-        map.addLayer({
-          id: "zones-stroke",
-          type: "line",
-          source: "zones",
-          paint: {
-            "line-color": ["get", "strokeColor"],
-            "line-width": 2,
-          },
-        });
-
-        // Source for drawing preview
-        map.addSource("drawing", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-          id: "drawing-fill",
-          type: "fill",
-          source: "drawing",
-          paint: {
-            "fill-color": "rgba(59, 130, 246, 0.2)",
-            "fill-opacity": 1,
-          },
-        });
-        map.addLayer({
-          id: "drawing-line",
-          type: "line",
-          source: "drawing",
-          paint: {
-            "line-color": "rgb(59, 130, 246)",
-            "line-width": 2,
-            "line-dasharray": [2, 2],
-          },
-        });
-
-        // Drawing points — TEST: hardcoded point at map center + large red circles
-        map.addSource("drawing-points", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: [{
-              type: "Feature",
-              properties: {},
-              geometry: { type: "Point", coordinates: [lon, lat] },
-            }],
-          },
-        });
-        map.addLayer({
-          id: "drawing-points",
-          type: "circle",
-          source: "drawing-points",
-          paint: {
-            "circle-radius": 20,
-            "circle-color": "#ff0000",
-            "circle-stroke-color": "#ffffff",
-            "circle-stroke-width": 4,
-          },
-        });
-        console.log("[SenPV] TEST: added red circle layer at", lon, lat);
-
-        // TEST: HTML Marker (DOM element, bypasses WebGL)
-        new maplibregl.Marker({ color: "#ff0000" })
-          .setLngLat([lon, lat])
-          .addTo(map);
-        console.log("[SenPV] TEST: added HTML marker at", lon, lat);
-
+        console.log("[SenPV] map loaded — sources and layers defined in style");
         setMapReady(true);
       });
 
