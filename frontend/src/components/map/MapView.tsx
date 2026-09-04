@@ -95,12 +95,14 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
       if (cancelled || !mapContainer.current) return;
 
-      const emptyGeoJSON = { type: "FeatureCollection" as const, features: [] as any[] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const emptyFC: any = { type: "FeatureCollection", features: [] };
 
       const map = new maplibregl.Map({
         container: mapContainer.current,
         style: {
           version: 8,
+          glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
           sources: {
             "google-satellite": {
               type: "raster",
@@ -114,11 +116,16 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               attribution: "&copy; Google",
               maxzoom: 22,
             },
-            zones: { type: "geojson", data: emptyGeoJSON },
-            drawing: { type: "geojson", data: emptyGeoJSON },
-            "drawing-points": { type: "geojson", data: emptyGeoJSON },
+            zones: { type: "geojson", data: emptyFC },
+            drawing: { type: "geojson", data: emptyFC },
+            "drawing-points": { type: "geojson", data: emptyFC },
           },
           layers: [
+            {
+              id: "background",
+              type: "background",
+              paint: { "background-color": "#000000" },
+            },
             {
               id: "google-satellite",
               type: "raster",
@@ -168,10 +175,10 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               type: "circle",
               source: "drawing-points",
               paint: {
-                "circle-radius": 6,
-                "circle-color": "rgb(59, 130, 246)",
-                "circle-stroke-color": "#fff",
-                "circle-stroke-width": 2,
+                "circle-radius": 8,
+                "circle-color": "#ff0000",
+                "circle-stroke-color": "#ffffff",
+                "circle-stroke-width": 3,
               },
             },
           ],
