@@ -212,7 +212,13 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
             "circle-stroke-width": 4,
           },
         });
-        console.log("[SenPV] TEST: added red circle at", lon, lat);
+        console.log("[SenPV] TEST: added red circle layer at", lon, lat);
+
+        // TEST: HTML Marker (DOM element, bypasses WebGL)
+        new maplibregl.Marker({ color: "#ff0000" })
+          .setLngLat([lon, lat])
+          .addTo(map);
+        console.log("[SenPV] TEST: added HTML marker at", lon, lat);
 
         setMapReady(true);
       });
