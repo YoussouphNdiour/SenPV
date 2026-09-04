@@ -95,14 +95,13 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
       if (cancelled || !mapContainer.current) return;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const emptyFC: any = { type: "FeatureCollection", features: [] };
+      const ML = maplibregl.default || maplibregl;
+      const emptyFC = { type: "FeatureCollection" as const, features: [] };
 
-      const map = new maplibregl.Map({
+      const map = new ML.Map({
         container: mapContainer.current,
         style: {
           version: 8,
-          glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
           sources: {
             "google-satellite": {
               type: "raster",
@@ -116,70 +115,14 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               attribution: "&copy; Google",
               maxzoom: 22,
             },
-            zones: { type: "geojson", data: emptyFC },
-            drawing: { type: "geojson", data: emptyFC },
-            "drawing-points": { type: "geojson", data: emptyFC },
           },
           layers: [
-            {
-              id: "background",
-              type: "background",
-              paint: { "background-color": "#000000" },
-            },
             {
               id: "google-satellite",
               type: "raster",
               source: "google-satellite",
               minzoom: 0,
               maxzoom: 22,
-            },
-            {
-              id: "zones-fill",
-              type: "fill",
-              source: "zones",
-              paint: {
-                "fill-color": ["get", "fillColor"],
-                "fill-opacity": 0.3,
-              },
-            },
-            {
-              id: "zones-stroke",
-              type: "line",
-              source: "zones",
-              paint: {
-                "line-color": ["get", "strokeColor"],
-                "line-width": 2,
-              },
-            },
-            {
-              id: "drawing-fill",
-              type: "fill",
-              source: "drawing",
-              paint: {
-                "fill-color": "rgba(59, 130, 246, 0.2)",
-                "fill-opacity": 1,
-              },
-            },
-            {
-              id: "drawing-line",
-              type: "line",
-              source: "drawing",
-              paint: {
-                "line-color": "rgb(59, 130, 246)",
-                "line-width": 2,
-                "line-dasharray": [2, 2],
-              },
-            },
-            {
-              id: "drawing-points",
-              type: "circle",
-              source: "drawing-points",
-              paint: {
-                "circle-radius": 8,
-                "circle-color": "#ff0000",
-                "circle-stroke-color": "#ffffff",
-                "circle-stroke-width": 3,
-              },
             },
           ],
         },
@@ -189,10 +132,10 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         clickTolerance: 10,
       });
 
-      map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-      map.addControl(new maplibregl.FullscreenControl(), "bottom-right");
+      map.addControl(new ML.NavigationControl(), "bottom-right");
+      map.addControl(new ML.FullscreenControl(), "bottom-right");
       map.addControl(
-        new maplibregl.GeolocateControl({
+        new ML.GeolocateControl({
           positionOptions: { enableHighAccuracy: true },
           trackUserLocation: false,
         }),
@@ -200,7 +143,57 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       );
 
       map.on("load", () => {
-        console.log("[SenPV] map loaded — sources and layers defined in style");
+        // Add vector sources
+        map.addSource("zones", { type: "geojson", data: emptyFC });
+        map.addSource("drawing", { type: "geojson", data: emptyFC });
+        map.addSource("drawing-points", { type: "geojson", data: emptyFC });
+
+        // Zone layers
+        map.addLayer({
+          id: "zones-fill",
+          type: "fill",
+          source: "zones",
+          paint: { "fill-color": ["get", "fillColor"], "fill-opacity": 0.3 },
+        });
+        map.addLayer({
+          id: "zones-stroke",
+          type: "line",
+          source: "zones",
+          paint: { "line-color": ["get", "strokeColor"], "line-width": 2 },
+        });
+
+        // Drawing preview layers
+        map.addLayer({
+          id: "drawing-fill",
+          type: "fill",
+          source: "drawing",
+          paint: { "fill-color": "rgba(59,130,246,0.2)", "fill-opacity": 1 },
+        });
+        map.addLayer({
+          id: "drawing-line",
+          type: "line",
+          source: "drawing",
+          paint: {
+            "line-color": "rgb(59,130,246)",
+            "line-width": 2,
+            "line-dasharray": [2, 2],
+          },
+        });
+
+        // Drawing points layer
+        map.addLayer({
+          id: "drawing-points",
+          type: "circle",
+          source: "drawing-points",
+          paint: {
+            "circle-radius": 6,
+            "circle-color": "rgb(59,130,246)",
+            "circle-stroke-color": "#fff",
+            "circle-stroke-width": 2,
+          },
+        });
+
+        console.log("[SenPV] map loaded, layers added");
         setMapReady(true);
       });
 
