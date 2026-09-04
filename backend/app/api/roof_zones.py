@@ -3,7 +3,8 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from geoalchemy2.functions import ST_Area, ST_AsGeoJSON, ST_GeomFromGeoJSON
-from sqlalchemy import func, select
+from sqlalchemy import cast, func, select
+from geoalchemy2 import Geography
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -98,7 +99,7 @@ async def create_zone(
     # Compute area using geography cast for m² result
     if body.polygon:
         area_result = await db.execute(
-            select(ST_Area(RoofZone.polygon.cast_to_geography())).where(RoofZone.id == zone.id)
+            select(ST_Area(cast(RoofZone.polygon, Geography))).where(RoofZone.id == zone.id)
         )
         area_m2 = area_result.scalar()
         zone.area_m2 = round(area_m2, 2) if area_m2 else None
@@ -152,7 +153,7 @@ async def update_zone(
     # Recompute area if polygon changed
     if polygon_changed:
         area_result = await db.execute(
-            select(ST_Area(RoofZone.polygon.cast_to_geography())).where(RoofZone.id == zone.id)
+            select(ST_Area(cast(RoofZone.polygon, Geography))).where(RoofZone.id == zone.id)
         )
         area_m2 = area_result.scalar()
         zone.area_m2 = round(area_m2, 2) if area_m2 else None
