@@ -214,9 +214,11 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       map.on("click", (e: any) => {
         const mode = useMapStore.getState().mapMode;
         const point: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+        console.log("[SenPV] map click — mode:", mode, "point:", point);
 
         if (mode === "draw-zone") {
           useMapStore.getState().addDrawingPoint(point);
+          console.log("[SenPV] drawing points:", useMapStore.getState().drawingPoints);
         } else if (mode === "delete-zone" && map.getLayer("zones-fill")) {
           const features = map.queryRenderedFeatures(e.point, {
             layers: ["zones-fill"],
@@ -338,7 +340,6 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
               });
             }
           }
-          map.getCanvas().style.cursor = "crosshair";
         } else if (mode === "delete-zone" && map.getLayer("zones-fill")) {
           const features = map.queryRenderedFeatures(e.point, {
             layers: ["zones-fill"],
@@ -453,7 +454,8 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         geometry: z.polygon!,
       }));
 
-    source.setData({ type: "FeatureCollection", features });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (source as any).setData({ type: "FeatureCollection", features });
   }, [zones, mapReady]);
 
   // Update drawing preview
@@ -463,9 +465,16 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
     const drawingSource = map.getSource("drawing");
     const pointsSource = map.getSource("drawing-points");
-    if (!drawingSource || !pointsSource) return;
+    if (!drawingSource || !pointsSource) {
+      console.log("[SenPV] drawing sources missing — drawing:", !!drawingSource, "points:", !!pointsSource);
+      return;
+    }
 
-    pointsSource.setData({
+    console.log("[SenPV] updating drawing preview — points:", drawingPoints.length);
+
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (pointsSource as any).setData({
       type: "FeatureCollection",
       features: drawingPoints.map((p: [number, number]) => ({
         type: "Feature" as const,
@@ -475,7 +484,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
     });
 
     if (drawingPoints.length >= 2) {
-      drawingSource.setData({
+      (drawingSource as any).setData({
         type: "FeatureCollection",
         features: [
           {
@@ -489,7 +498,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         ],
       });
     } else if (drawingPoints.length === 1 && previewLineRef.current) {
-      drawingSource.setData({
+      (drawingSource as any).setData({
         type: "FeatureCollection",
         features: [
           {
@@ -503,7 +512,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         ],
       });
     } else {
-      drawingSource.setData({ type: "FeatureCollection", features: [] });
+      (drawingSource as any).setData({ type: "FeatureCollection", features: [] });
     }
   }, [drawingPoints, mapReady]);
 
