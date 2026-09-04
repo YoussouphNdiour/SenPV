@@ -126,6 +126,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         center: [lon, lat],
         zoom: 19,
         maxZoom: 22,
+        clickTolerance: 10,
       });
 
       map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -298,6 +299,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       map.on("mousemove", (e: any) => {
         const mode = useMapStore.getState().mapMode;
         if (mode === "draw-zone") {
+          map.getCanvas().style.cursor = "crosshair";
           previewLineRef.current = [e.lngLat.lng, e.lngLat.lat];
           const points = useMapStore.getState().drawingPoints;
           if (points.length > 0) {
