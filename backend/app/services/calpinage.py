@@ -7,9 +7,12 @@ filtre les panneaux entierement a l'interieur du polygone,
 puis re-projette les centres en WGS84.
 """
 
+import logging
 import math
 
 import numpy as np
+
+logger = logging.getLogger("senpv.calpinage")
 from pyproj import Transformer
 from shapely.affinity import rotate, translate
 from shapely.geometry import Polygon, box
@@ -75,9 +78,14 @@ def compute_calpinage(
             {center_lat, center_lon, rotation_deg, corners}, ...
         ]
     """
+    logger.info("compute_calpinage called — specs: %s, orientation: %s, tilt: %s", panel_specs, orientation_deg, tilt_deg)
+    logger.info("polygon WGS84 bounds: %s, area: %s", polygon_wgs84.bounds, polygon_wgs84.area)
+
     dims = panel_specs.get("dimensions_mm", {})
     panel_length_m = dims.get("length", 2000) / 1000.0  # long side
     panel_width_m = dims.get("width", 1000) / 1000.0  # short side
+
+    logger.info("panel dimensions: %.3fm x %.3fm", panel_length_m, panel_width_m)
 
     # On a tilted roof, the projected height (vertical footprint) is reduced
     tilt_rad = math.radians(tilt_deg)
@@ -87,19 +95,29 @@ def compute_calpinage(
     cell_w = panel_length_m + spacing_x
     cell_h = projected_width + spacing_y
 
+    logger.info("cell: %.3f x %.3f, spacing: %.3f x %.3f", cell_w, cell_h, spacing_x, spacing_y)
+
     if cell_w <= 0 or cell_h <= 0:
+        logger.warning("cell dimensions <= 0, returning empty")
         return []
 
     # 1. Project polygon to UTM
     poly_utm = _project(polygon_wgs84, _to_utm)
 
+    logger.info("polygon UTM bounds: %s, area: %.2f m²", poly_utm.bounds, poly_utm.area)
+
     if poly_utm.is_empty or not poly_utm.is_valid:
+        logger.warning("polygon UTM is empty or invalid")
         return []
 
     # 2. Compute bounding box center for rotation origin
     minx, miny, maxx, maxy = poly_utm.bounds
     cx = (minx + maxx) / 2
     cy = (miny + maxy) / 2
+
+    bbox_w = maxx - minx
+    bbox_h = maxy - miny
+    logger.info("UTM bbox: %.2fm x %.2fm, center: (%.2f, %.2f)", bbox_w, bbox_h, cx, cy)
 
     # 3. Rotation angle: we rotate the polygon OPPOSITE to the orientation
     # so we can place a regular grid, then rotate results back.
@@ -123,7 +141,10 @@ def compute_calpinage(
     nx = int((rmaxx - start_x - half_w) / cell_w) + 1
     ny = int((rmaxy - start_y - half_h) / cell_h) + 1
 
+    logger.info("grid: nx=%d, ny=%d (rotated bbox: %.2f x %.2f)", nx, ny, rmaxx - rminx, rmaxy - rminy)
+
     if nx <= 0 or ny <= 0:
+        logger.warning("grid dimensions <= 0 (nx=%d, ny=%d), returning empty", nx, ny)
         return []
 
     # Generate candidate centers
@@ -131,8 +152,10 @@ def compute_calpinage(
     ys = start_y + np.arange(ny) * cell_h
 
     panels = []
+    candidates = 0
     for x in xs:
         for y in ys:
+            candidates += 1
             # Create panel rectangle in rotated frame
             panel_rect = box(x - half_w, y - half_h, x + half_w, y + half_h)
 
@@ -163,6 +186,7 @@ def compute_calpinage(
                     }
                 )
 
+    logger.info("calpinage result: %d panels placed out of %d candidates", len(panels), candidates)
     return panels
 
 
