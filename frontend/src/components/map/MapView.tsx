@@ -218,7 +218,49 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
         if (mode === "draw-zone") {
           useMapStore.getState().addDrawingPoint(point);
-          console.log("[SenPV] drawing points:", useMapStore.getState().drawingPoints);
+          const pts = useMapStore.getState().drawingPoints;
+          console.log("[SenPV] drawing points:", pts);
+
+          // Update map sources directly (bypass React cycle)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ptsSrc = map.getSource("drawing-points") as any;
+          if (ptsSrc) {
+            ptsSrc.setData({
+              type: "FeatureCollection",
+              features: pts.map((p: [number, number]) => ({
+                type: "Feature",
+                properties: {},
+                geometry: { type: "Point", coordinates: p },
+              })),
+            });
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const drawSrc = map.getSource("drawing") as any;
+          if (drawSrc && pts.length >= 2) {
+            drawSrc.setData({
+              type: "FeatureCollection",
+              features: [{
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [[...pts, pts[0]]],
+                },
+              }],
+            });
+          } else if (drawSrc && pts.length === 1) {
+            drawSrc.setData({
+              type: "FeatureCollection",
+              features: [{
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: [pts[0], point],
+                },
+              }],
+            });
+          }
         } else if (mode === "delete-zone" && map.getLayer("zones-fill")) {
           const features = map.queryRenderedFeatures(e.point, {
             layers: ["zones-fill"],
