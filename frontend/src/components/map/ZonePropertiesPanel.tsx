@@ -27,9 +27,10 @@ const ROOF_TYPES: { value: RoofType; labelKey: string }[] = [
 
 interface ZonePropertiesPanelProps {
   projectId: string;
+  positionLeft?: boolean;
 }
 
-export function ZonePropertiesPanel({ projectId }: ZonePropertiesPanelProps) {
+export function ZonePropertiesPanel({ projectId, positionLeft }: ZonePropertiesPanelProps) {
   const t = useTranslations("map");
   const tv = useTranslations("viewer3d");
   const tc = useTranslations("common");
@@ -68,7 +69,7 @@ export function ZonePropertiesPanel({ projectId }: ZonePropertiesPanelProps) {
   };
 
   return (
-    <div className="absolute top-3 right-3 w-72 bg-background/95 backdrop-blur border rounded-lg shadow-lg p-4 z-10">
+    <div className={`absolute top-3 w-72 bg-background/95 backdrop-blur border rounded-lg shadow-lg p-4 z-10 ${positionLeft ? "left-3" : "right-3"}`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-sm">
           Zone {zone.zone_index + 1}

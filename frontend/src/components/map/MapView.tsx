@@ -499,7 +499,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       <PanelBadge panels={equipmentPanels} />
 
       {/* Panel Row Placer toggle button */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
         <Button
           variant={showRowPlacer ? "default" : "outline"}
           size="sm"
@@ -513,8 +513,8 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
       {/* Panel Row Placer panel */}
       {showRowPlacer && token && (
-        <div className="absolute top-14 right-4 bottom-4 z-10 w-72 bg-background/95 backdrop-blur rounded-lg shadow-lg border flex flex-col">
-          <div className="p-3 overflow-y-auto flex-1 scrollbar-thin">
+        <div className="absolute top-14 right-4 bottom-4 z-20 w-72 bg-background/95 backdrop-blur rounded-lg shadow-lg border flex flex-col">
+          <div className="p-3 overflow-y-auto flex-1">
             <PanelRowPlacer
               projectId={projectId}
               token={token}
@@ -531,7 +531,9 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         </div>
       )}
 
-      {selectedZoneId && <ZonePropertiesPanel projectId={projectId} />}
+      {selectedZoneId && (
+        <ZonePropertiesPanel projectId={projectId} positionLeft={showRowPlacer} />
+      )}
     </div>
   );
 }

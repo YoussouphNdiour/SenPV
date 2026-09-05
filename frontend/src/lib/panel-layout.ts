@@ -16,8 +16,34 @@ export interface GenerateRangéesOptions {
   orientationDeg: number;
 }
 
+/** Ray-casting point-in-polygon test */
+function pointInPolygon(
+  point: [number, number],
+  polygon: number[][]
+): boolean {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Check if ALL 4 corners of a panel are inside the zone polygon */
+function panelInsideZone(
+  corners: [number, number][],
+  polygon: number[][]
+): boolean {
+  return corners.every((c) => pointInPolygon(c, polygon));
+}
+
 /**
  * Generate panel rectangles arranged as rangées (tables) stacked top→bottom.
+ * Only panels entirely inside the zone polygon are kept.
  *
  * Each rangée is a grid of (colsPerRangée × rowsPerRangée) panels.
  * Rangées are separated by `gapRangéeM`.
@@ -94,6 +120,15 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
   let idx = 0;
   let panelsPlaced = 0;
 
+  // Remove closing point from polygon if present (for ray-casting)
+  const poly = zonePolygon;
+  const lastPt = poly[poly.length - 1];
+  const firstPt = poly[0];
+  const openPoly =
+    lastPt[0] === firstPt[0] && lastPt[1] === firstPt[1]
+      ? poly.slice(0, -1)
+      : poly;
+
   for (const rangée of rangées) {
     for (let row = 0; row < rangée.rows; row++) {
       for (let col = 0; col < rangée.cols; col++) {
@@ -124,13 +159,16 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
           ] as [number, number];
         });
 
-        const ring = [...rotatedCorners, rotatedCorners[0]];
-        features.push({
-          type: "Feature",
-          properties: { index: idx, rotation_deg: orientationDeg },
-          geometry: { type: "Polygon", coordinates: [ring] },
-        });
-        idx++;
+        // Only keep panels entirely inside the zone polygon
+        if (panelInsideZone(rotatedCorners, openPoly)) {
+          const ring = [...rotatedCorners, rotatedCorners[0]];
+          features.push({
+            type: "Feature",
+            properties: { index: idx, rotation_deg: orientationDeg },
+            geometry: { type: "Polygon", coordinates: [ring] },
+          });
+          idx++;
+        }
         panelsPlaced++;
       }
       if (panelsPlaced >= totalPanels) break;
