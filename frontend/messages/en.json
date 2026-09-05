@@ -166,7 +166,8 @@
     "selectZoneFirst": "Select a roof zone first",
     "panelRows": "Panel rows",
     "drawRect": "South Rectangle",
-    "hintDrawRect": "Click 2 opposite corners to create a south-facing rectangle"
+    "hintDrawRect": "Click 2 opposite corners to create a south-facing rectangle",
+    "panelArea": "Panel area: {area} m²"
   },
   "panels": {
     "calpinage": "Auto panel placement",

@@ -11,6 +11,7 @@ import { useMapStore, type MapMode } from "@/store/map";
 import { usePanelStore } from "@/store/panels";
 import { useEquipmentStore } from "@/store/equipment";
 import type { GeoJSONPolygon } from "@/types/roof-zone";
+import type { PanelSpecs } from "@/types/equipment";
 import { GeoSearch } from "./GeoSearch";
 import { DrawingTools } from "./DrawingTools";
 import { ZonePropertiesPanel } from "./ZonePropertiesPanel";
@@ -547,6 +548,23 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
   };
   const hint = hintMap[mapMode];
 
+  // ─── Compute panel stats for info badge ───────────────────
+  const totalPanelCount = layouts.reduce((sum, l) => sum + l.num_panels, 0);
+  const panelStats = (() => {
+    let totalKwc = 0;
+    let totalAreaM2 = 0;
+    for (const layout of layouts) {
+      const panel = equipmentPanels.find((p) => p.id === layout.panel_model_id);
+      const specs = panel?.specs as PanelSpecs | undefined;
+      if (specs) {
+        totalKwc += (layout.num_panels * specs.pmax_w) / 1000;
+        const panelAreaM2 = (specs.dimensions_mm.length / 1000) * (specs.dimensions_mm.width / 1000);
+        totalAreaM2 += layout.num_panels * panelAreaM2;
+      }
+    }
+    return { totalKwc, totalAreaM2 };
+  })();
+
   return (
     <div className="relative w-full h-[calc(100vh-280px)] min-h-[500px] rounded-lg overflow-hidden border">
       <div ref={mapContainer} className="w-full h-full" />
@@ -599,6 +617,21 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
       {selectedZoneId && (
         <ZonePropertiesPanel projectId={projectId} positionLeft={showRowPlacer} />
+      )}
+
+      {/* Panel info badge */}
+      {totalPanelCount > 0 && (
+        <div className="absolute bottom-4 right-4 z-10 bg-background/90 backdrop-blur rounded-lg shadow border px-3 py-2 text-xs space-y-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">{t("panelCount", { count: totalPanelCount })}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">{t("peakPower", { kwc: panelStats.totalKwc.toFixed(1) })}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">{t("panelArea", { area: panelStats.totalAreaM2.toFixed(1) })}</span>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -166,7 +166,8 @@
     "selectZoneFirst": "Sélectionnez une zone de toit d'abord",
     "panelRows": "Rangées de panneaux",
     "drawRect": "Rectangle Sud",
-    "hintDrawRect": "Cliquez 2 coins opposés pour créer un rectangle orienté plein sud"
+    "hintDrawRect": "Cliquez 2 coins opposés pour créer un rectangle orienté plein sud",
+    "panelArea": "Surface panneaux : {area} m²"
   },
   "panels": {
     "calpinage": "Calpinage automatique",
