@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Zap, Trash2 } from "lucide-react";
+import { Zap, Trash2, ChevronDown, ChevronUp, Plus, Minus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useEquipmentStore } from "@/store/equipment";
 import { useMapStore } from "@/store/map";
 import { usePanelStore } from "@/store/panels";
-import type { Equipment, PanelSpecs } from "@/types/equipment";
+import type { PanelSpecs } from "@/types/equipment";
 
 interface PanelsTabProps {
   projectId: string;
@@ -47,6 +47,13 @@ export function PanelsTab({ projectId, token }: PanelsTabProps) {
   const [selectedInverterId, setSelectedInverterId] = useState("");
   const [spacingX, setSpacingX] = useState(0.02);
   const [spacingY, setSpacingY] = useState(0.02);
+  const [gapRangée, setGapRangée] = useState(0.5);
+
+  // Advanced options
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [numRangées, setNumRangées] = useState(3);
+  const [colsPerRangée, setColsPerRangée] = useState(5);
+  const [orientation, setOrientation] = useState<"horizontal" | "vertical">("horizontal");
 
   const handleZoneChange = (v: string | null) => setSelectedZoneId(v ?? "");
   const handlePanelChange = (v: string | null) => setSelectedPanelId(v ?? "");
@@ -84,6 +91,13 @@ export function PanelsTab({ projectId, token }: PanelsTabProps) {
         inverter_model_id: selectedInverterId || undefined,
         spacing_x: spacingX,
         spacing_y: spacingY,
+        // Pass advanced options if enabled
+        ...(showAdvanced && {
+          num_rangees: numRangées,
+          cols_per_rangee: colsPerRangée,
+          orientation,
+          gap_rangee: gapRangée,
+        }),
       },
       token
     );
@@ -193,6 +207,105 @@ export function PanelsTab({ projectId, token }: PanelsTabProps) {
               />
             </div>
           </div>
+
+          {/* Advanced options toggle */}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+          >
+            {showAdvanced ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            {t("advancedOptions")}
+          </button>
+
+          {/* Advanced options */}
+          {showAdvanced && (
+            <div className="space-y-3 border-t pt-3">
+              {/* Orientation */}
+              <div className="space-y-2">
+                <Label>{t("orientation")}</Label>
+                <div className="flex gap-1">
+                  <Button
+                    variant={orientation === "horizontal" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    onClick={() => setOrientation("horizontal")}
+                  >
+                    {t("horizontal")}
+                  </Button>
+                  <Button
+                    variant={orientation === "vertical" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    onClick={() => setOrientation("vertical")}
+                  >
+                    {t("vertical")}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Rangées + cols per rangée */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">{t("numRangées")}</Label>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setNumRangées(Math.max(1, numRangées - 1))}
+                    >
+                      <Minus className="size-3" />
+                    </Button>
+                    <span className="w-7 text-center text-sm font-medium">{numRangées}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setNumRangées(Math.min(20, numRangées + 1))}
+                    >
+                      <Plus className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">{t("colsPerRangée")}</Label>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setColsPerRangée(Math.max(1, colsPerRangée - 1))}
+                    >
+                      <Minus className="size-3" />
+                    </Button>
+                    <span className="w-7 text-center text-sm font-medium">{colsPerRangée}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setColsPerRangée(Math.min(30, colsPerRangée + 1))}
+                    >
+                      <Plus className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gap between rangées */}
+              <div className="space-y-2">
+                <Label className="text-xs">{t("gapRangée")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={5}
+                  step={0.1}
+                  value={gapRangée}
+                  onChange={(e) => setGapRangée(Number(e.target.value))}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Selected panel info */}
           {selectedPanelSpecs && (

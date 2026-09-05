@@ -198,7 +198,8 @@
     "orientation": "Orientation",
     "horizontal": "Horizontal",
     "vertical": "Vertical",
-    "gapRangée": "Écart rangées (m)"
+    "gapRangée": "Écart rangées (m)",
+    "advancedOptions": "Options avancées (rangées, orientation)"
   },
   "equipment": {
     "title": "Catalogue équipements",

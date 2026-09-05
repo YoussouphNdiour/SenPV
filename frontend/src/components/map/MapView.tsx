@@ -513,13 +513,15 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
 
       {/* Panel Row Placer panel */}
       {showRowPlacer && token && (
-        <div className="absolute top-14 right-4 z-10 w-72 bg-background/95 backdrop-blur rounded-lg shadow-lg border p-4 max-h-[calc(100%-80px)] overflow-y-auto">
-          <PanelRowPlacer
-            projectId={projectId}
-            token={token}
-            mapRef={mapRef}
-            onLayoutChanged={handleLayoutChanged}
-          />
+        <div className="absolute top-14 right-4 bottom-4 z-10 w-72 bg-background/95 backdrop-blur rounded-lg shadow-lg border flex flex-col">
+          <div className="p-3 overflow-y-auto flex-1 scrollbar-thin">
+            <PanelRowPlacer
+              projectId={projectId}
+              token={token}
+              mapRef={mapRef}
+              onLayoutChanged={handleLayoutChanged}
+            />
+          </div>
         </div>
       )}
 

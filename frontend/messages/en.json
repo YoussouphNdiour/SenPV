@@ -198,7 +198,8 @@
     "orientation": "Orientation",
     "horizontal": "Horizontal",
     "vertical": "Vertical",
-    "gapRangée": "Row gap (m)"
+    "gapRangée": "Row gap (m)",
+    "advancedOptions": "Advanced options (rows, orientation)"
   },
   "equipment": {
     "title": "Equipment catalog",
