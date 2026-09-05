@@ -18,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import { useEquipmentStore } from "@/store/equipment";
 import { useMapStore } from "@/store/map";
 import { usePanelStore } from "@/store/panels";
+import { generateRangées } from "@/lib/panel-layout";
 import type { PanelSpecs } from "@/types/equipment";
+import type { PanelLayoutGeoJSON } from "@/types/panel-layout";
 
 interface PanelsTabProps {
   projectId: string;
@@ -91,16 +93,42 @@ export function PanelsTab({ projectId, token }: PanelsTabProps) {
         inverter_model_id: selectedInverterId || undefined,
         spacing_x: spacingX,
         spacing_y: spacingY,
-        // Pass advanced options if enabled
-        ...(showAdvanced && {
-          num_rangees: numRangées,
-          cols_per_rangee: colsPerRangée,
-          orientation,
-          gap_rangee: gapRangée,
-        }),
       },
       token
     );
+
+    // If advanced options are enabled, override backend layout with frontend-computed rangées
+    if (showAdvanced && selectedPanelSpecs) {
+      const zone = zones.find((z) => z.id === selectedZoneId);
+      const polygon = zone?.polygon?.coordinates?.[0];
+      if (polygon) {
+        const totalPanels = layout.num_panels > 0 ? layout.num_panels : numRangées * colsPerRangée;
+        const features = generateRangées({
+          zonePolygon: polygon as number[][],
+          panelLengthM: selectedPanelSpecs.dimensions_mm.length / 1000,
+          panelWidthM: selectedPanelSpecs.dimensions_mm.width / 1000,
+          orientation,
+          totalPanels,
+          numRangées,
+          colsPerRangée,
+          spacingXM: spacingX,
+          spacingYM: spacingY,
+          gapRangéeM: gapRangée,
+          orientationDeg: zone?.orientation_deg ?? 0,
+        });
+
+        const layoutGeoJSON: PanelLayoutGeoJSON = {
+          type: "FeatureCollection",
+          features,
+        };
+
+        await usePanelStore.getState().updateLayout(projectId, layout.id, {
+          layout_geojson: layoutGeoJSON,
+          num_panels: features.length,
+        }, token);
+      }
+    }
+
     setSelectedLayout(layout.id);
   };
 
