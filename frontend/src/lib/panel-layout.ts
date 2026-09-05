@@ -7,6 +7,7 @@ export interface GenerateRangéesOptions {
   panelLengthM: number;
   panelWidthM: number;
   orientation: PanelOrientation;
+  /** Max panels to place. Use Infinity to fill the zone. */
   totalPanels: number;
   numRangées: number;
   colsPerRangée: number;
@@ -60,7 +61,7 @@ function shrinkPolygon(
     const dxM = (vertex[0] - cLng) * mPerDegLng;
     const dyM = (vertex[1] - cLat) * mPerDegLat;
     const dist = Math.sqrt(dxM * dxM + dyM * dyM);
-    if (dist < marginM) return [cLng, cLat]; // vertex too close to centroid
+    if (dist < marginM) return [cLng, cLat];
     const scale = (dist - marginM) / dist;
     return [
       cLng + (vertex[0] - cLng) * scale,
@@ -71,7 +72,10 @@ function shrinkPolygon(
 
 /**
  * Generate panel rectangles arranged as rangées (tables) stacked top→bottom.
- * Only panels entirely inside the zone polygon (with margin) are kept.
+ *
+ * 1. Builds the full grid of (numRangées × colsPerRangée) positions
+ * 2. Filters: only panels entirely inside the zone (with margin) are kept
+ * 3. Caps at totalPanels (use Infinity to fill the zone)
  */
 export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[] {
   const {
@@ -110,41 +114,25 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
   const cellW = pw + spX;
   const cellH = ph + spY;
 
-  // Distribute panels across rangées
-  const panelsPerRangée = Math.ceil(totalPanels / numRangées);
-  const rangées: { cols: number; rows: number }[] = [];
-  let remaining = totalPanels;
-
-  for (let r = 0; r < numRangées; r++) {
-    const count = Math.min(remaining, panelsPerRangée);
-    if (count <= 0) break;
-    const cols = Math.min(colsPerRangée, count);
-    const rows = Math.ceil(count / cols);
-    rangées.push({ cols, rows });
-    remaining -= count;
-  }
+  // Each rangée has the same structure: colsPerRangée columns
+  // Number of rows per rangée: for manual mode, ceil(totalPanels / numRangées / colsPerRangée)
+  // For auto-fill mode (totalPanels=Infinity), we use enough rows to cover the zone
+  const rowsPerRangée = isFinite(totalPanels)
+    ? Math.ceil(Math.ceil(totalPanels / numRangées) / colsPerRangée)
+    : 50; // generous max for auto-fill
 
   // Compute total height to center vertically
-  let totalH = 0;
-  for (let r = 0; r < rangées.length; r++) {
-    totalH += rangées[r].rows * cellH - spY;
-    if (r < rangées.length - 1) totalH += gapR;
-  }
-
-  // Total width = widest rangée
-  const maxCols = Math.max(...rangées.map((r) => r.cols));
-  const totalW = maxCols * cellW - spX;
+  const rangéeH = rowsPerRangée * cellH - spY;
+  const totalH = numRangées * rangéeH + (numRangées - 1) * gapR;
+  const totalW = colsPerRangée * cellW - spX;
 
   // Starting position (top-left, centered on centroid)
   const startLng = cLng - totalW / 2;
   let currentLat = cLat + totalH / 2;
 
   const rotRad = (orientationDeg * Math.PI) / 180;
-  const features: PanelPosition[] = [];
-  let idx = 0;
-  let panelsPlaced = 0;
 
-  // Prepare shrunk polygon for containment test (with margin)
+  // Prepare shrunk polygon for containment test
   const rawPoly = zonePolygon;
   const lastPt = rawPoly[rawPoly.length - 1];
   const firstPt = rawPoly[0];
@@ -157,15 +145,16 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
     ? shrinkPolygon(openPoly, marginM, mPerDegLat, mPerDegLng)
     : openPoly;
 
-  for (const rangée of rangées) {
-    for (let row = 0; row < rangée.rows; row++) {
-      for (let col = 0; col < rangée.cols; col++) {
-        if (panelsPlaced >= totalPanels) break;
+  // Step 1: Generate ALL grid positions, filter by containment
+  const allCandidates: PanelPosition[] = [];
+  let idx = 0;
 
+  for (let rg = 0; rg < numRangées; rg++) {
+    for (let row = 0; row < rowsPerRangée; row++) {
+      for (let col = 0; col < colsPerRangée; col++) {
         const pLng = startLng + col * cellW + pw / 2;
         const pLat = currentLat - row * cellH - ph / 2;
 
-        // 4 corners relative to center
         const hw = pw / 2;
         const hh = ph / 2;
         const corners: [number, number][] = [
@@ -175,7 +164,6 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
           [-hw, -hh],
         ];
 
-        // Rotate around zone centroid
         const rotatedCorners = corners.map(([dx, dy]) => {
           const dxM = dx * mPerDegLng;
           const dyM = dy * mPerDegLat;
@@ -187,24 +175,30 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
           ] as [number, number];
         });
 
-        // Only keep panels entirely inside the shrunk zone polygon
         if (panelInsideZone(rotatedCorners, testPoly)) {
           const ring = [...rotatedCorners, rotatedCorners[0]];
-          features.push({
+          allCandidates.push({
             type: "Feature",
             properties: { index: idx, rotation_deg: orientationDeg },
             geometry: { type: "Polygon", coordinates: [ring] },
           });
           idx++;
         }
-        panelsPlaced++;
       }
-      if (panelsPlaced >= totalPanels) break;
     }
 
     // Move down for next rangée
-    currentLat -= rangée.rows * cellH - spY + gapR;
+    currentLat -= rangéeH + gapR;
   }
 
-  return features;
+  // Step 2: Cap at totalPanels
+  const capped = isFinite(totalPanels)
+    ? allCandidates.slice(0, totalPanels)
+    : allCandidates;
+
+  // Re-index
+  return capped.map((f, i) => ({
+    ...f,
+    properties: { ...f.properties, index: i },
+  }));
 }
