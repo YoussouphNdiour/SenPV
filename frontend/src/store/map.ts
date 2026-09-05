@@ -33,6 +33,7 @@ async function fetchApi<T>(
 export type MapMode =
   | "navigate"
   | "draw-zone"
+  | "draw-rect"
   | "edit-zone"
   | "delete-zone"
   | "add-panel"

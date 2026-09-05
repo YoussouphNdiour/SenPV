@@ -164,7 +164,9 @@
     "deleteZone": "Delete zone",
     "zone": "Zone",
     "selectZoneFirst": "Select a roof zone first",
-    "panelRows": "Panel rows"
+    "panelRows": "Panel rows",
+    "drawRect": "South Rectangle",
+    "hintDrawRect": "Click 2 opposite corners to create a south-facing rectangle"
   },
   "panels": {
     "calpinage": "Auto panel placement",

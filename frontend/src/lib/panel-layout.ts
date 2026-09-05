@@ -14,6 +14,8 @@ export interface GenerateRangéesOptions {
   spacingYM: number;
   gapRangéeM: number;
   orientationDeg: number;
+  /** Margin in meters to keep panels away from zone edges (default 0.3) */
+  marginM?: number;
 }
 
 /** Ray-casting point-in-polygon test */
@@ -33,7 +35,7 @@ function pointInPolygon(
   return inside;
 }
 
-/** Check if ALL 4 corners of a panel are inside the zone polygon */
+/** Check if ALL 4 corners of a panel are inside the polygon */
 function panelInsideZone(
   corners: [number, number][],
   polygon: number[][]
@@ -42,13 +44,34 @@ function panelInsideZone(
 }
 
 /**
+ * Shrink a polygon inward by `marginM` meters.
+ * Moves each vertex toward the centroid by the margin distance.
+ */
+function shrinkPolygon(
+  polygon: number[][],
+  marginM: number,
+  mPerDegLat: number,
+  mPerDegLng: number
+): number[][] {
+  const cLng = polygon.reduce((s, c) => s + c[0], 0) / polygon.length;
+  const cLat = polygon.reduce((s, c) => s + c[1], 0) / polygon.length;
+
+  return polygon.map((vertex) => {
+    const dxM = (vertex[0] - cLng) * mPerDegLng;
+    const dyM = (vertex[1] - cLat) * mPerDegLat;
+    const dist = Math.sqrt(dxM * dxM + dyM * dyM);
+    if (dist < marginM) return [cLng, cLat]; // vertex too close to centroid
+    const scale = (dist - marginM) / dist;
+    return [
+      cLng + (vertex[0] - cLng) * scale,
+      cLat + (vertex[1] - cLat) * scale,
+    ];
+  });
+}
+
+/**
  * Generate panel rectangles arranged as rangées (tables) stacked top→bottom.
- * Only panels entirely inside the zone polygon are kept.
- *
- * Each rangée is a grid of (colsPerRangée × rowsPerRangée) panels.
- * Rangées are separated by `gapRangéeM`.
- *
- * Orientation controls whether each panel is placed landscape (H) or portrait (V).
+ * Only panels entirely inside the zone polygon (with margin) are kept.
  */
 export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[] {
   const {
@@ -63,6 +86,7 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
     spacingYM,
     gapRangéeM,
     orientationDeg,
+    marginM = 0.3,
   } = opts;
 
   // Panel footprint depends on orientation
@@ -120,14 +144,18 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
   let idx = 0;
   let panelsPlaced = 0;
 
-  // Remove closing point from polygon if present (for ray-casting)
-  const poly = zonePolygon;
-  const lastPt = poly[poly.length - 1];
-  const firstPt = poly[0];
+  // Prepare shrunk polygon for containment test (with margin)
+  const rawPoly = zonePolygon;
+  const lastPt = rawPoly[rawPoly.length - 1];
+  const firstPt = rawPoly[0];
   const openPoly =
     lastPt[0] === firstPt[0] && lastPt[1] === firstPt[1]
-      ? poly.slice(0, -1)
-      : poly;
+      ? rawPoly.slice(0, -1)
+      : rawPoly;
+
+  const testPoly = marginM > 0
+    ? shrinkPolygon(openPoly, marginM, mPerDegLat, mPerDegLng)
+    : openPoly;
 
   for (const rangée of rangées) {
     for (let row = 0; row < rangée.rows; row++) {
@@ -159,8 +187,8 @@ export function generateRangées(opts: GenerateRangéesOptions): PanelPosition[]
           ] as [number, number];
         });
 
-        // Only keep panels entirely inside the zone polygon
-        if (panelInsideZone(rotatedCorners, openPoly)) {
+        // Only keep panels entirely inside the shrunk zone polygon
+        if (panelInsideZone(rotatedCorners, testPoly)) {
           const ring = [...rotatedCorners, rotatedCorners[0]];
           features.push({
             type: "Feature",

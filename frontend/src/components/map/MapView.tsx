@@ -180,8 +180,44 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
     // ─── Draw current drawing (preview) ───────────────────
     const pts = useMapStore.getState().drawingPoints;
     const preview = previewPointRef.current;
+    const currentMode = useMapStore.getState().mapMode;
 
-    if (pts.length > 0) {
+    if (pts.length > 0 && currentMode === "draw-rect" && preview) {
+      // Rectangle preview: first point + mouse cursor = opposite corners
+      const p1 = pts[0];
+      const p2 = preview;
+      const rectPts: [number, number][] = [
+        [p1[0], p1[1]],
+        [p2[0], p1[1]],
+        [p2[0], p2[1]],
+        [p1[0], p2[1]],
+      ];
+      const pixels = rectPts.map(toPixel);
+
+      ctx.beginPath();
+      ctx.moveTo(pixels[0][0], pixels[0][1]);
+      for (let j = 1; j < pixels.length; j++) {
+        ctx.lineTo(pixels[j][0], pixels[j][1]);
+      }
+      ctx.closePath();
+      ctx.fillStyle = "rgba(59, 130, 246, 0.15)";
+      ctx.fill();
+      ctx.strokeStyle = "rgb(59, 130, 246)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw corner point
+      const px = toPixel(p1);
+      ctx.beginPath();
+      ctx.arc(px[0], px[1], 6, 0, Math.PI * 2);
+      ctx.fillStyle = "rgb(59, 130, 246)";
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (pts.length > 0) {
       const allPts = [...pts];
       if (preview) allPts.push(preview);
 
@@ -295,6 +331,32 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
         if (mode === "draw-zone") {
           useMapStore.getState().addDrawingPoint(point);
           drawOverlay();
+        } else if (mode === "draw-rect") {
+          const pts = useMapStore.getState().drawingPoints;
+          if (pts.length === 0) {
+            // First click: set first corner
+            useMapStore.getState().addDrawingPoint(point);
+            drawOverlay();
+          } else {
+            // Second click: create rectangle polygon (south-oriented = axis-aligned)
+            const p1 = pts[0];
+            const p2 = point;
+            const polygon: GeoJSONPolygon = {
+              type: "Polygon",
+              coordinates: [[
+                [p1[0], p1[1]],
+                [p2[0], p1[1]],
+                [p2[0], p2[1]],
+                [p1[0], p2[1]],
+                [p1[0], p1[1]], // close ring
+              ]],
+            };
+            document.dispatchEvent(
+              new CustomEvent("senpv:finish-zone", {
+                detail: { polygon, orientation_deg: 180 },
+              })
+            );
+          }
         } else if (mode === "delete-zone") {
           // Find which zone was clicked by checking point-in-polygon
           const currentZones = useMapStore.getState().zones;
@@ -356,7 +418,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.on("mousemove", (e: any) => {
         const mode = useMapStore.getState().mapMode;
-        if (mode === "draw-zone") {
+        if (mode === "draw-zone" || mode === "draw-rect") {
           map.getCanvas().style.cursor = "crosshair";
           previewPointRef.current = [e.lngLat.lng, e.lngLat.lat];
           drawOverlay();
@@ -393,9 +455,12 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
     };
 
     const handleFinishZone = (e: Event) => {
-      const { polygon } = (e as CustomEvent).detail;
+      const { polygon, orientation_deg } = (e as CustomEvent).detail;
       if (token && polygon) {
-        addZone(projectId, { polygon }, token)
+        addZone(projectId, {
+          polygon,
+          ...(orientation_deg !== undefined && { orientation_deg }),
+        }, token)
           .then((zone) => {
             clearDrawingPoints();
             setSelectedZone(zone.id);
@@ -451,7 +516,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (mapMode === "draw-zone") {
+    if (mapMode === "draw-zone" || mapMode === "draw-rect") {
       map.doubleClickZoom.disable();
     } else {
       map.doubleClickZoom.enable();
@@ -473,6 +538,7 @@ export function MapView({ projectId, lat, lon }: MapViewProps) {
   const hintMap: Record<MapMode, string> = {
     navigate: "",
     "draw-zone": t("hintDrawZone"),
+    "draw-rect": t("hintDrawRect"),
     "edit-zone": "",
     "delete-zone": t("hintDeleteZone"),
     "add-panel": t("hintAddPanel"),

@@ -164,7 +164,9 @@
     "deleteZone": "Supprimer la zone",
     "zone": "Zone",
     "selectZoneFirst": "Sélectionnez une zone de toit d'abord",
-    "panelRows": "Rangées de panneaux"
+    "panelRows": "Rangées de panneaux",
+    "drawRect": "Rectangle Sud",
+    "hintDrawRect": "Cliquez 2 coins opposés pour créer un rectangle orienté plein sud"
   },
   "panels": {
     "calpinage": "Calpinage automatique",

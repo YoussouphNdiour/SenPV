@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { PenTool, MousePointer, Trash2, Undo2 } from "lucide-react";
+import { PenTool, MousePointer, Trash2, Undo2, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useMapStore, type MapMode } from "@/store/map";
@@ -13,6 +13,7 @@ const tools: {
   labelKey: string;
 }[] = [
   { mode: "draw-zone", icon: PenTool, labelKey: "drawRoof" },
+  { mode: "draw-rect", icon: Square, labelKey: "drawRect" },
   { mode: "edit-zone", icon: MousePointer, labelKey: "selectPanel" },
   { mode: "delete-zone", icon: Trash2, labelKey: "deletePanel" },
 ];
@@ -51,7 +52,7 @@ export function DrawingTools() {
       ))}
 
       {/* Undo button - only visible when drawing */}
-      {mapMode === "draw-zone" && drawingPoints.length > 0 && (
+      {(mapMode === "draw-zone" || mapMode === "draw-rect") && drawingPoints.length > 0 && (
         <Button
           variant="secondary"
           size="icon"
