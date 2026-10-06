@@ -10,3 +10,7 @@ redisdata/
 /data/uploads/
 *.db
 frontend/AGENTS.md
+.DS_Store
+backend/.DS_Store
+.playwright-mcp/
+docs/superpowers/

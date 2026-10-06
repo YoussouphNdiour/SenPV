@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24h
-    upload_dir: str = "/data/uploads"
+    upload_dir: str = "./uploads"
     domain: str = ""
     default_lat: float = 14.6928  # Dakar
     default_lon: float = -17.4467

@@ -126,29 +126,61 @@ export function PanelRowPlacer({
     }
   };
 
+  // Auto-fill: same layout (rangées, orientation, spacing) but fills the zone
   const handleCalpinage = async () => {
-    if (!selectedZone || !selectedPanel) return;
+    if (!selectedZone || !selectedPanel || !panelSpecs) return;
+
+    const polygon = selectedZone.polygon?.coordinates?.[0];
+    if (!polygon) return;
 
     setLoadingCalp(true);
     try {
+      const features = generateRangées({
+        zonePolygon: polygon as number[][],
+        panelLengthM: panelSpecs.dimensions_mm.length / 1000,
+        panelWidthM: panelSpecs.dimensions_mm.width / 1000,
+        orientation,
+        totalPanels: Infinity, // fill the zone
+        numRangées,
+        colsPerRangée,
+        spacingXM: spacingX,
+        spacingYM: spacingY,
+        gapRangéeM: gapRangée,
+        orientationDeg: selectedZone.orientation_deg ?? 0,
+      });
+
+      const layoutGeoJSON: PanelLayoutGeoJSON = {
+        type: "FeatureCollection",
+        features,
+      };
+
       const existingLayout = layouts.find(
         (l) => l.roof_zone_id === selectedZone.id
       );
+
       if (existingLayout) {
-        await usePanelStore.getState().deleteLayout(projectId, existingLayout.id, token);
+        await updateLayout(projectId, existingLayout.id, {
+          layout_geojson: layoutGeoJSON,
+          num_panels: features.length,
+        } as Partial<typeof existingLayout>, token);
+      } else {
+        const newLayout = await createLayout(
+          projectId,
+          {
+            roof_zone_id: selectedZone.id,
+            panel_model_id: selectedPanel.id,
+            spacing_x: spacingX,
+            spacing_y: spacingY,
+          },
+          token
+        );
+        await updateLayout(projectId, newLayout.id, {
+          layout_geojson: layoutGeoJSON,
+          num_panels: features.length,
+        } as Partial<typeof newLayout>, token);
       }
 
-      await createLayout(
-        projectId,
-        {
-          roof_zone_id: selectedZone.id,
-          panel_model_id: selectedPanel.id,
-          spacing_x: spacingX,
-          spacing_y: spacingY,
-        },
-        token
-      );
-
+      setTotalPanels(features.length);
       onLayoutChanged();
     } catch (err) {
       console.error("Calpinage failed:", err);
