@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -21,6 +21,8 @@ import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges";
 import { SymbolPalette } from "./SymbolPalette";
 import { ValidationPanel } from "./ValidationPanel";
+import { NodeEditor } from "./NodeEditor";
+import type { SchematicNodeData } from "@/types/schematic";
 
 interface SchematicEditorProps {
   projectId: string;
@@ -34,6 +36,7 @@ function SchematicEditorInner({ projectId, token }: SchematicEditorProps) {
 
   const [nodes, setNodes, onNodesChange] = useNodesState(store.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(store.edges);
+  const [selectedNode, setSelectedNode] = useState<Node<SchematicNodeData> | null>(null);
 
   // Sync store -> local state
   useEffect(() => {
@@ -65,6 +68,34 @@ function SchematicEditorInner({ projectId, token }: SchematicEditorProps) {
       );
     },
     [setEdges]
+  );
+
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      setSelectedNode(node as Node<SchematicNodeData>);
+    },
+    []
+  );
+
+  const handleNodeUpdate = useCallback(
+    (nodeId: string, data: SchematicNodeData) => {
+      setNodes((nds) =>
+        nds.map((n) => (n.id === nodeId ? { ...n, data: { ...data } } : n)) as typeof nds
+      );
+      setSelectedNode(null);
+    },
+    [setNodes]
+  );
+
+  const handleNodeDelete = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId) as typeof nds);
+      setEdges((eds) =>
+        eds.filter((e) => e.source !== nodeId && e.target !== nodeId) as typeof eds
+      );
+      setSelectedNode(null);
+    },
+    [setNodes, setEdges]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -152,6 +183,8 @@ function SchematicEditorInner({ projectId, token }: SchematicEditorProps) {
             onConnect={onConnect}
             onDragOver={onDragOver}
             onDrop={onDrop}
+            onNodeClick={onNodeClick}
+            onPaneClick={() => setSelectedNode(null)}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView
@@ -171,6 +204,14 @@ function SchematicEditorInner({ projectId, token }: SchematicEditorProps) {
 
       {/* Right: Validation Panel */}
       <ValidationPanel errors={store.validationErrors} />
+
+      {/* Far Right: Node Editor */}
+      <NodeEditor
+        node={selectedNode}
+        onUpdate={handleNodeUpdate}
+        onDelete={handleNodeDelete}
+        onClose={() => setSelectedNode(null)}
+      />
     </div>
   );
 }

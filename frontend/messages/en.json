@@ -370,7 +370,22 @@
     "save": "Save",
     "noSchematic": "No diagram generated yet. Click \"Generate automatically\" to create the single-line diagram.",
     "critical": "Critical",
-    "warning": "Warning"
+    "warning": "Warning",
+    "nodeEditor": "Component Properties",
+    "editLabel": "Label",
+    "editRating": "Rating (A)",
+    "editPoles": "Poles",
+    "editPower": "Power (kW)",
+    "editVoltage": "Voltage (V)",
+    "editMppt": "MPPT count",
+    "editPanelCount": "Panels per string",
+    "editSurgeType": "Surge type",
+    "editMeterType": "Meter type",
+    "editResistance": "Resistance (Ω)",
+    "applyChanges": "Apply",
+    "closeEditor": "Close",
+    "clickNodeToEdit": "Click a component to edit its properties",
+    "deleteNode": "Delete"
   },
   "quote": {
     "title": "Quote",

@@ -13,7 +13,7 @@ from app.config import settings
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 
-_jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
+_jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=False)
 
 
 def _format_fcfa(amount) -> str:

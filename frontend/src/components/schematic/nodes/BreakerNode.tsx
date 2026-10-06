@@ -3,7 +3,7 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 export function BreakerNode({ data }: NodeProps) {
-  const isDC = data.dc === true || data.cable_type === "dc";
+  const isDC = data.dc === true || data.cable_type === "dc" || data.node_type === "dc_breaker";
   const borderColor = isDC ? "border-red-500" : "border-blue-500";
   const bgColor = isDC ? "bg-red-50" : "bg-blue-50";
   const textColor = isDC ? "text-red-800" : "text-blue-800";

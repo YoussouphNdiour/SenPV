@@ -370,7 +370,22 @@
     "save": "Sauvegarder",
     "noSchematic": "Aucun schéma généré. Cliquez sur « Générer automatiquement » pour créer le schéma unifilaire.",
     "critical": "Critique",
-    "warning": "Avertissement"
+    "warning": "Avertissement",
+    "nodeEditor": "Propriétés du composant",
+    "editLabel": "Libellé",
+    "editRating": "Calibre (A)",
+    "editPoles": "Pôles",
+    "editPower": "Puissance (kW)",
+    "editVoltage": "Tension (V)",
+    "editMppt": "Nombre MPPT",
+    "editPanelCount": "Panneaux par string",
+    "editSurgeType": "Type parafoudre",
+    "editMeterType": "Type compteur",
+    "editResistance": "Résistance (Ω)",
+    "applyChanges": "Appliquer",
+    "closeEditor": "Fermer",
+    "clickNodeToEdit": "Cliquez sur un composant pour modifier ses propriétés",
+    "deleteNode": "Supprimer"
   },
   "quote": {
     "title": "Devis",

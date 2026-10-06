@@ -122,7 +122,7 @@ async def _load_latest_quote(db: AsyncSession, project_id: uuid.UUID):
 
 
 # ---- POST /projects/{id}/report ---- full report
-@router.post("/report", response_model=ReportRead, status_code=status.HTTP_201_CREATED)
+@router.post("/report", status_code=status.HTTP_200_OK)
 async def generate_full_report(
     project_id: uuid.UUID,
     user: CurrentUser,
@@ -167,7 +167,14 @@ async def generate_full_report(
     db.add(report)
     await db.commit()
     await db.refresh(report)
-    return report
+
+    # Return PDF bytes directly for immediate download
+    filename = f"rapport-{project.name}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ---- POST /projects/{id}/report/quote ---- quote-only PDF

@@ -157,11 +157,21 @@ export const useSchematicStore = create<SchematicStore>((set, get) => ({
   exportSvg: async (projectId, token) => {
     set({ loading: true, error: null });
     try {
-      await fetchApi<any>(
+      const data = await fetchApi<{ svg: string }>(
         `/projects/${projectId}/schematic/export-svg`,
         token,
         { method: "POST" }
       );
+      // Trigger browser download of SVG file
+      if (data.svg) {
+        const blob = new Blob([data.svg], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `schema-unifilaire-${projectId}.svg`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
       set({ loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
